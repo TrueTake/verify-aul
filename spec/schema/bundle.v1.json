@@ -1,0 +1,187 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/TrueTake/verify-aul/blob/main/spec/schema/bundle.v1.json",
+  "title": "AUL Verification Bundle v1",
+  "description": "JSON Schema for the verification bundle format defined in spec/v1.0-rc.1.md. Normative for structural validation.",
+  "type": "object",
+  "required": ["bundle_schema_version", "status", "event_hash"],
+  "additionalProperties": false,
+  "properties": {
+    "bundle_schema_version": {
+      "description": "Integer schema version. Currently `1` is the only supported value.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "status": {
+      "description": "Anchoring lifecycle state.",
+      "type": "string",
+      "enum": ["confirmed", "pending", "partial"]
+    },
+    "event_hash": {
+      "description": "SHA-256 of RFC 8785 canonicalize(event), 64-char lowercase hex.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "event": {
+      "description": "Canonical event object. Present in Tier 2 bundles, absent in Tier 1 proofs.",
+      "type": "object"
+    },
+    "server_signature": {
+      "description": "Ed25519 signature over the hex-decoded event_hash bytes, 128-char lowercase hex.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{128}$"
+    },
+    "signing_key_id": {
+      "description": "Fingerprint of the key in signing_keys that was used to produce server_signature. 16-char base64url.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{16}$"
+    },
+    "signing_keys": {
+      "description": "Array of candidate signing keys; verifier selects by fingerprint === signing_key_id.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/signingKey"
+      },
+      "minItems": 1
+    },
+    "merkle_proof": {
+      "$ref": "#/$defs/merkleProof"
+    },
+    "anchors": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/anchor"
+      }
+    },
+    "partial_anchors_reason": {
+      "description": "Names of anchor providers that terminal-failed after retries. Empty array → fully confirmed.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "allOf": [
+    {
+      "description": "If event is present, Tier 2 signing fields must also be present.",
+      "if": { "required": ["event"] },
+      "then": {
+        "required": ["server_signature", "signing_key_id", "signing_keys"]
+      }
+    },
+    {
+      "description": "Confirmed/partial bundles must include merkle_proof and anchors.",
+      "if": {
+        "properties": {
+          "status": { "enum": ["confirmed", "partial"] }
+        },
+        "required": ["status"]
+      },
+      "then": {
+        "required": ["merkle_proof", "anchors"]
+      }
+    }
+  ],
+  "$defs": {
+    "signingKey": {
+      "type": "object",
+      "required": ["fingerprint", "public_key_base64url", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "fingerprint": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{16}$"
+        },
+        "public_key_base64url": {
+          "description": "Raw 32-byte Ed25519 public key, base64url-encoded (no padding).",
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "minLength": 43,
+          "maxLength": 44
+        },
+        "status": {
+          "type": "string",
+          "enum": ["active", "retired"]
+        }
+      }
+    },
+    "merkleProof": {
+      "type": "object",
+      "required": ["leaf_index", "siblings", "root"],
+      "additionalProperties": false,
+      "properties": {
+        "leaf_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "siblings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["hash", "direction"],
+            "additionalProperties": false,
+            "properties": {
+              "hash": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "direction": {
+                "type": "string",
+                "enum": ["left", "right"]
+              }
+            }
+          }
+        },
+        "root": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "anchor": {
+      "oneOf": [
+        { "$ref": "#/$defs/solanaAnchor" },
+        { "$ref": "#/$defs/tsaAnchor" }
+      ]
+    },
+    "solanaAnchor": {
+      "type": "object",
+      "required": ["type", "signature", "cluster"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "solana" },
+        "signature": {
+          "description": "Base58-encoded Solana transaction signature.",
+          "type": "string",
+          "minLength": 64,
+          "maxLength": 128
+        },
+        "cluster": {
+          "type": "string",
+          "enum": ["mainnet-beta", "devnet", "testnet"]
+        }
+      }
+    },
+    "tsaAnchor": {
+      "type": "object",
+      "required": ["type", "token", "external_timestamp"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["tsa_freetsa", "tsa_digicert"]
+        },
+        "token": {
+          "description": "Base64-encoded DER TimeStampToken (CMS ContentInfo wrapping SignedData).",
+          "type": "string",
+          "minLength": 1
+        },
+        "external_timestamp": {
+          "description": "ISO-8601 timestamp claimed by the TSA in TSTInfo.genTime. Informational — verifier authoritative-value is the parsed TSTInfo.",
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    }
+  }
+}
