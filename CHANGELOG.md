@@ -6,9 +6,23 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
 
 ## [Unreleased]
 
+### Added
+
+- **Unit 4b: all four crypto-bearing reference test vectors** (`tier1-pass`, `tier2-pass`, `partial-missing-anchor`, `fail-trust-anchor-mismatch`) now contain real cryptographic material and verify end-to-end against the production trust anchors. Pass / partial vectors carry real RFC 3161 TimeStampTokens minted against FreeTSA + DigiCert by `spec/generate-fixtures.ts`. The mismatch vector's token is signed by a local fixtures CA (new, under `spec/fixtures-trust-anchors/`) whose SHA-256(SKI) is pinned in `spec/fixtures-trust-anchors/fingerprints.ts` and asserted disjoint from production by `scripts/check-fingerprints-disjoint.ts`.
+- `spec/tools/fetch-tsa.ts` — RFC 3161 `TimeStampReq` issuer that POSTs to a TSA and unwraps the returned `TimeStampToken`. Pure pkijs; no external TSA client dep.
+- `spec/tools/fixtures-ca.ts` — local CA + TSA signing cert generator plus a `TimeStampToken` signer that wraps a `TSTInfo` in CMS `SignedData`. Used only for the mismatch vector; never ships in the npm tarball.
+- `npm run fixtures:generate` — orchestrates the above. Requires network (contacts FreeTSA + DigiCert). Regenerated vectors end up with fresh TSA `genTime` + fresh RSA signatures; their verdicts stay stable.
+
 ### Changed
 
+- `src/spec-vectors.test.ts` now asserts a concrete verdict on every vector (was: 4 deterministic + 4 placeholder-marker-only). Uses `verifyBundle` from the production API — no test-only override needed, because the pass / partial vectors are signed by real pinned CAs.
+- `scripts/check-schema-vectors.ts` no longer skips placeholder vectors; it validates all eight.
+- `spec/v1.0-rc.1.md` drops the "in-progress" Unit 4b note; the spec now honestly claims all eight vectors are real.
 - Removed the OIDC debug step from `release.yml`. It served its purpose during the alpha.0–alpha.3 troubleshooting; production publishes don't need it.
+
+### Plan delta
+
+- Static vectors intentionally omit Solana anchors. The static-vector format can't carry a real Solana tx signature without every test run round-tripping to a devnet RPC; the Solana verification code path is exercised by `src/core.test.ts` with mocked `fetch`.
 
 ## [0.1.0-alpha.4] — 2026-04-17
 

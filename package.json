@@ -82,6 +82,7 @@
     "check:trust-anchors": "tsx scripts/check-trust-anchor-fingerprints.ts",
     "check:fingerprints-disjoint": "tsx scripts/check-fingerprints-disjoint.ts",
     "check:schema-vectors": "tsx scripts/check-schema-vectors.ts",
+    "fixtures:generate": "tsx spec/generate-fixtures.ts",
     "clean": "rm -rf dist .tshy-build web/dist"
   },
   "dependencies": {

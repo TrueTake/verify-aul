@@ -1,15 +1,18 @@
 # `tier2-pass.json`
 
-**Status:** **PLACEHOLDER** — the JSON in this file is shape-only and will **not** pass the verifier. Unit 4b regenerates it with real crypto.
-
-**Expected verdict (once generated):** `pass`
+**Expected verdict:** `pass`
 
 **Exercises:** the end-to-end success path for a Tier 2 bundle — all five check categories fire and all return `pass`.
 
 - Check 1 — `bundle_schema_version` → pass.
-- Check 2 — `canonical_recompute` → pass (`SHA-256(canonicalize(event)) === event_hash`).
-- Check 3 — `server_signature` → pass (Ed25519 verify succeeds over `hex_decode(event_hash)`).
+- Check 2 — `canonical_recompute` → pass. `SHA-256(canonicalize(event)) === event_hash`.
+- Check 3 — `server_signature` → pass. Fresh Ed25519 key pair signs `hex_decode(event_hash)` at generation time; the public key lands in `signing_keys[0]`.
 - Check 4 — `merkle_inclusion` → pass.
-- Check 5 — per-anchor → pass.
+- Check 5 — per-anchor → pass on both FreeTSA and DigiCert tokens.
 
-**Blocker:** the fixtures Ed25519 signing key + real RFC 3161 TimeStampToken generation. Both tracked in Unit 4b.
+**Generation:** `npm run fixtures:generate` runs:
+
+1. `canonicalize(event)` → SHA-256 → `event_hash`.
+2. `getPublicKeyAsync(ed25519.utils.randomSecretKey())` → `signing_keys[0].public_key_base64url`, with fingerprint `base64url(SHA-256(publicKey)).slice(0, 16)`.
+3. `signAsync(hex_decode(event_hash), privateKey)` → `server_signature`.
+4. FreeTSA + DigiCert TSA requests against the Merkle root.
