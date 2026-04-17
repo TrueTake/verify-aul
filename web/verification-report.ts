@@ -5,7 +5,7 @@
  * verdict means screen readers announce the outcome on status change.
  */
 
-import type { VerificationResult } from '@truetake/verify-aul';
+import type { VerificationResult } from '../src/index.js';
 
 const VERDICT_LABEL: Record<VerificationResult['verdict'], string> = {
   pass: 'PASS — bundle fully verified',
@@ -24,7 +24,7 @@ export function renderReport(result: VerificationResult): void {
   section.hidden = false;
 
   verdictEl.dataset['verdict'] = result.verdict;
-  verdictEl.textContent = VERDICT_LABEL[result.verdict];
+  verdictEl.textContent = VERDICT_LABEL[result.verdict] ?? result.verdict;
 
   checksEl.innerHTML = '';
   for (const check of result.checks) {

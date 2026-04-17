@@ -6,7 +6,7 @@
  * boundaries before the bundle reaches the verifier.
  */
 
-import type { VerificationBundle } from '@truetake/verify-aul';
+import type { VerificationBundle } from '../src/index.js';
 
 const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
 
