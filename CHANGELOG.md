@@ -6,6 +6,13 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
 
 ## [Unreleased]
 
+## [0.1.0-alpha.4] — 2026-04-17
+
+### Fixed
+
+- **Release workflow now uses Node 24** in the publish job. The alpha.3 attempt to `npm install -g npm@latest` under Node 22 failed with `Cannot find module 'promise-retry'` (a known mid-swap glitch when npm 10 upgrades itself to npm 11+). Node 24 ships with npm 11+ by default, sidestepping the self-upgrade entirely. CI (`ci.yml`) continues to test the published package against Node 20 and Node 22 — only the publish job lifts to 24.
+- **Pages actions downgraded to v4 SHAs.** `upload-pages-artifact@v5` consumed `upload-artifact@v7`'s new immutable blob storage; `deploy-pages@v5` couldn't download the resulting blob across jobs (produced `BlobNotFound` in the deploy step). Rolling both back to v4 restores the cross-job artifact handoff.
+
 ## [0.1.0-alpha.3] — 2026-04-17
 
 ### Fixed
