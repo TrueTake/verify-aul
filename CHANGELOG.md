@@ -6,7 +6,13 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
 
 ## [Unreleased]
 
+### Changed
+
+- Removed the OIDC debug step from `release.yml`. It served its purpose during the alpha.0–alpha.3 troubleshooting; production publishes don't need it.
+
 ## [0.1.0-alpha.4] — 2026-04-17
+
+**First OIDC-provenance alpha to land on npm.** [Sigstore transparency entry 1331751100](https://search.sigstore.dev/?logIndex=1331751100). Repository visibility flipped to public as a Unit 9 side-effect — `npm publish --provenance` rejects private-repo provenance. `github-pages` deploy branch policy updated to allow `v*` tag refs. Hosted UI live at https://truetake.github.io/verify-aul/.
 
 ### Fixed
 
