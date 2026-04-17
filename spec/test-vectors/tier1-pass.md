@@ -1,14 +1,14 @@
 # `tier1-pass.json`
 
-**Status:** **PLACEHOLDER** — the JSON in this file is shape-only and will **not** pass the verifier. Unit 4b of the TRU-625 plan regenerates it with real crypto via `spec/generate-fixtures.ts`.
-
-**Expected verdict (once generated):** `pass`
+**Expected verdict:** `pass`
 
 **Exercises:** the end-to-end success path for a Tier 1 proof.
 
 - Check 1 — `bundle_schema_version` → pass.
-- Check 4 — `merkle_inclusion` → pass (proof reproduces the declared root).
-- Check 5 — `anchor:tsa_freetsa` → pass (TSA token validly signed by the fixtures CA; messageImprint matches `SHA-256(hex_decode(merkle_proof.root))`).
-- Check 5 — `anchor:solana` → pass (mocked RPC response includes the Merkle root in `meta.logMessages`).
+- Check 4 — `merkle_inclusion` → pass (single-leaf tree; `root = SHA-256(0x00 || hex_decode(event_hash))`).
+- Check 5 — `anchor:tsa_freetsa` → pass (real RFC 3161 TimeStampToken from FreeTSA).
+- Check 5 — `anchor:tsa_digicert` → pass (real RFC 3161 TimeStampToken from DigiCert).
 
-**Blocker:** the TSA token must be a well-formed RFC 3161 TimeStampToken signed by a cert whose CA is in the `TRUST_ANCHOR_FINGERPRINTS_FIXTURES` pin set. The generator is tracked as Unit 4b.
+**Generation:** `npm run fixtures:generate` contacts FreeTSA and DigiCert and mints fresh tokens over this vector's Merkle root. Both CAs are pinned in `src/trust-anchors/fingerprints.ts`, so the tokens verify against the same trust set an end user has bundled with the package.
+
+**Solana anchors are intentionally omitted.** Static vectors can't include real Solana transactions without devnet round-trips. The Solana code path is covered by unit tests under `src/core.test.ts` with mocked `fetch`.
