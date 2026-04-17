@@ -35,6 +35,9 @@
     "provenance": true
   },
   "sideEffects": false,
+  "bin": {
+    "verify-aul": "./dist/esm/cli/bin.js"
+  },
   "exports": {
     ".": {
       "import": {
@@ -64,8 +67,10 @@
       "./package.json": "./package.json"
     },
     "exclude": [
-      "src/**/*.test.ts"
-    ]
+      "src/**/*.test.ts",
+      "src/cli/**/fixtures/**"
+    ],
+    "project": "./tsconfig.json"
   },
   "scripts": {
     "build": "tshy",
