@@ -18,6 +18,6 @@
     "isolatedModules": true,
     "allowSyntheticDefaultImports": true
   },
-  "include": ["src/**/*", "web/**/*.ts"],
-  "exclude": ["dist/", "node_modules/", "src/**/*.test.ts", "web/dist/"]
+  "include": ["src/**/*", "web/**/*.ts", "scripts/**/*.ts", "spec/**/*.ts"],
+  "exclude": ["dist/", "node_modules/", "src/**/*.test.ts", "scripts/**/*.test.ts", "web/dist/"]
 }

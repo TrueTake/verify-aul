@@ -79,6 +79,9 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "check:pack": "publint && attw --pack . --profile esm-only",
+    "check:trust-anchors": "tsx scripts/check-trust-anchor-fingerprints.ts",
+    "check:fingerprints-disjoint": "tsx scripts/check-fingerprints-disjoint.ts",
+    "check:schema-vectors": "tsx scripts/check-schema-vectors.ts",
     "clean": "rm -rf dist .tshy-build web/dist"
   },
   "dependencies": {
@@ -92,9 +95,12 @@
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.2",
     "@types/node": "^22.10.0",
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
     "esbuild": "^0.24.0",
     "publint": "^0.3.15",
     "tshy": "^4.1.1",
+    "tsx": "^4.19.2",
     "typescript": "^5.6.3",
     "vitest": "^3.0.0"
   },

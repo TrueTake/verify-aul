@@ -1,0 +1,157 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Cancel in-flight runs for the same ref (PR or branch) when a new commit
+# arrives — saves cycles on rapid-fire pushes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-test:
+    name: Lint + typecheck + test (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['20', '22']
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98 # v5.0.0
+      - name: Setup Node.js ${{ matrix.node }}
+        uses: actions/setup-node@ab72c7e7eba0eaa11f8cab0f5679243900c2cac9
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Tests
+        run: npm test
+
+  package-shape:
+    name: Package shape (publint + attw)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+      - uses: actions/setup-node@ab72c7e7eba0eaa11f8cab0f5679243900c2cac9
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run build
+      - run: npm run check:pack
+
+  install-smoke:
+    name: Install-path smoke (npm pack → global install → verify-aul)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+      - uses: actions/setup-node@ab72c7e7eba0eaa11f8cab0f5679243900c2cac9
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run build
+      - name: Pack tarball
+        run: npm pack
+      - name: Global install and invoke
+        run: |
+          set -euo pipefail
+          TARBALL=$(ls truetake-verify-aul-*.tgz | head -1)
+          npm install -g "./${TARBALL}" --ignore-scripts
+          verify-aul --help
+          # Exit 2 on unknown subcommand, exit 0 on help
+          set +e
+          verify-aul foo
+          test $? -eq 2
+
+  trust-anchor-checks:
+    name: Trust anchors (sync + fingerprint + disjointness)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+      - uses: actions/setup-node@ab72c7e7eba0eaa11f8cab0f5679243900c2cac9
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run check:trust-anchors
+      - run: npm run check:fingerprints-disjoint
+
+  schema-vectors:
+    name: Spec schema / test-vector coherence
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+      - uses: actions/setup-node@ab72c7e7eba0eaa11f8cab0f5679243900c2cac9
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run check:schema-vectors
+
+  web-build:
+    name: Web UI (esbuild)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+      - uses: actions/setup-node@ab72c7e7eba0eaa11f8cab0f5679243900c2cac9
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run build
+      - run: npm run build:web
+      - name: Verify CSP meta present in index.html
+        run: |
+          grep 'http-equiv="Content-Security-Policy"' web/dist/index.html
+      - name: Verify MANIFEST.sha256 shipped
+        run: |
+          test -f web/dist/MANIFEST.sha256
+          test -s web/dist/MANIFEST.sha256
+          cat web/dist/MANIFEST.sha256
+
+  # Aggregate status check — this job's success is the one the main-branch
+  # Ruleset will require (see docs/plans for the Unit 1 ruleset deferral note).
+  ci:
+    name: ci
+    needs:
+      - lint-test
+      - package-shape
+      - install-smoke
+      - trust-anchor-checks
+      - schema-vectors
+      - web-build
+    runs-on: ubuntu-latest
+    if: ${{ !cancelled() }}
+    steps:
+      - name: Report aggregate status
+        run: |
+          if [ "${{ needs.lint-test.result }}" != "success" ] \
+            || [ "${{ needs.package-shape.result }}" != "success" ] \
+            || [ "${{ needs.install-smoke.result }}" != "success" ] \
+            || [ "${{ needs.trust-anchor-checks.result }}" != "success" ] \
+            || [ "${{ needs.schema-vectors.result }}" != "success" ] \
+            || [ "${{ needs.web-build.result }}" != "success" ]; then
+            echo "One or more upstream jobs failed"
+            exit 1
+          fi
+          echo "All checks passed"

@@ -2,7 +2,7 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
-    include: ['src/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'scripts/**/*.test.ts'],
     environment: 'node',
     globals: false,
     // Tests rely on WebCrypto (globalThis.crypto.subtle), available in Node 20+
