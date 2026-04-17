@@ -6,15 +6,28 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
 
 ## [Unreleased]
 
+## [0.1.0-alpha.0] — 2026-04-17
+
 ### Added
 
-- Initial repository scaffolding: README, SECURITY, CODEOWNERS, solo-maintainer Ruleset, `package.json` skeleton.
-- MIT license.
+- **Library.** ES module `verifyBundle` port from platform `lib/verify-aul/`. Isomorphic — runs under Node ≥20 and in modern browsers via WebCrypto. Pinned CA trust anchors (FreeTSA, DigiCert) validated by SubjectKeyIdentifier SHA-256 at module load.
+- **Testing subpath.** `verifyBundleForTesting` reachable only via `@truetake/verify-aul/testing`. Accepts a `trustAnchorFingerprints` override so fixtures-CA test vectors can be exercised without polluting the production pin set.
+- **CLI.** `npx @truetake/verify-aul bundle <file>` / `proof <file>`. Flags `--trust-anchors`, `--solana-rpc`, `--json`, `--verbose`. Exit codes 0 pass, 1 fail/partial, 2 usage error.
+- **Bundle format spec.** [`spec/v1.0-rc.1.md`](./spec/v1.0-rc.1.md) — normative prose, verdict truth table, trust-anchor pinning mechanism, RFC 2119/8174/8785/6962/3161/5652 cited normatively. 60-day RC window from publish date.
+- **JSON Schema.** [`spec/schema/bundle.v1.json`](./spec/schema/bundle.v1.json) — source of truth for structural validation.
+- **Test vectors.** Four deterministic reference vectors in `spec/test-vectors/` — `fail-unsupported-version`, `fail-tampered-event`, `fail-bad-merkle`, `fail-bad-anchor`. Four placeholder vectors (marked `_TODO_unit_4b`) pending the fixtures CA generator.
+- **Static verifier UI.** Vanilla-DOM + esbuild page hosted at [truetake.github.io/verify-aul/](https://truetake.github.io/verify-aul/). Strict CSP meta, no framework, no telemetry. Ships `MANIFEST.sha256` for reproducible-build verification.
+- **MIT license.**
+- **Supply-chain posture.** `npm publish --provenance` via GitHub Actions OIDC Trusted Publishing; tag-ancestor-of-main guard; `repository.url` drift guard; all third-party Actions SHA-pinned; `npm ci --ignore-scripts` on every CI job; CI-enforced inline-PEM vs file-PEM sync + fingerprint disjointness + spec-schema-vector coherence checks.
+- **Solo-maintainer Ruleset on `main`.** PR required, `ci` status check, no force-push / deletion, no admin bypass. See [`SECURITY.md`](./SECURITY.md) §4 for the posture details and deferred controls that activate when a second maintainer onboards.
 
-### Planned for `0.1.0-alpha.0`
+### Known gaps (tracked toward `v1.0.0`)
 
-- ES module library surface (`verifyBundle`, types) ported from platform's `lib/verify-aul/`.
-- CLI (`npx @truetake/verify-aul`) ported from platform's `scripts/verify-aul/`.
-- Bundle-format spec `v1.0-rc.1` + JSON Schema + 8 reference test vectors.
-- Static HTML verifier UI hosted at `truetake.github.io/verify-aul/`.
-- npm Trusted Publishing (OIDC) with Sigstore provenance.
+- Four crypto-bearing test vectors in `spec/test-vectors/` (the `*_pass` and `partial-missing-anchor` and `fail-trust-anchor-mismatch` ones) are shape-only placeholders. A fixtures-CA generator in `spec/generate-fixtures.ts` is the blocker. Deterministic vectors cover the remaining four verdict paths.
+- Repository is currently private during the alpha window; will flip public before `v1.0.0`.
+
+## [0.0.0-rc.0] — 2026-04-17
+
+### Added
+
+- **Scope-claim publish.** One-time manual publish to own the `@truetake/verify-aul` name on npm before Trusted Publishing could be configured (npm requires the package to exist before Trusted Publisher config is available). No provenance attestation on this version. Not recommended for use — install `0.1.0-alpha.0` or later.
