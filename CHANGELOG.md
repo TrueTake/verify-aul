@@ -9,6 +9,7 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
 ### Added
 
 - Initial repository scaffolding: README, SECURITY, CODEOWNERS, solo-maintainer Ruleset, `package.json` skeleton.
+- MIT license.
 
 ### Planned for `0.1.0-alpha.0`
 
