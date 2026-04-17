@@ -6,6 +6,16 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
 
 ## [Unreleased]
 
+## [0.1.0-alpha.2] — 2026-04-17
+
+### Fixed
+
+- `pages.yml` moved `actions/configure-pages` from the `build` job (which had only `contents: read`) to the `deploy` job (`pages: write`). The `Resource not accessible by integration` error from alpha.1 is gone.
+
+### Added (temporary — will be reverted)
+
+- Debug step in `release.yml` that prints OIDC token claims for npm Trusted Publishing troubleshooting. Remove once we confirm the first OIDC publish lands.
+
 ## [0.1.0-alpha.1] — 2026-04-17
 
 ### Fixed
