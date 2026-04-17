@@ -15,6 +15,7 @@
     "url": "https://github.com/TrueTake/verify-aul/issues"
   },
   "author": "TrueTake",
+  "license": "MIT",
   "keywords": [
     "aul",
     "verification",

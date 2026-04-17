@@ -66,7 +66,7 @@ Byte-identical diffs are unreliable across OS / filesystem / locale; the repo-co
 
 ## License
 
-Not yet licensed — pending. Do not fork or redistribute until a license file lands.
+[MIT](./LICENSE).
 
 ## Security
 
