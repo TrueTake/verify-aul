@@ -74,11 +74,12 @@
   },
   "scripts": {
     "build": "tshy",
+    "build:web": "node web/build.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "check:pack": "publint && attw --pack . --profile esm-only",
-    "clean": "rm -rf dist .tshy-build"
+    "clean": "rm -rf dist .tshy-build web/dist"
   },
   "dependencies": {
     "@noble/ed25519": "^3.1.0",
@@ -91,6 +92,7 @@
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.2",
     "@types/node": "^22.10.0",
+    "esbuild": "^0.24.0",
     "publint": "^0.3.15",
     "tshy": "^4.1.1",
     "typescript": "^5.6.3",

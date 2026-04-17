@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!--
+      Static CSP meta (enforced at parse time). The static `<meta http-equiv>`
+      is the only CSP vector we can set on GitHub Pages; response-header CSP
+      isn't configurable. Post-parse rewrites of this tag are NOT enforced by
+      any major browser and are deliberately not used.
+
+      connect-src intentionally widens to `https:` so the advanced panel
+      lets a user point the verifier at their own RPC/TSA host without
+      runtime CSP gymnastics. The trust story rests on script-src 'self' —
+      no off-origin script or style may load, which is the invariant an
+      auditor actually checks. See web/README.md §"CSP tradeoffs".
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' https:; img-src 'self' data:; base-uri 'none'; form-action 'none';"
+    />
+    <title>@truetake/verify-aul — AUL bundle verifier</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main id="app">
+      <header>
+        <h1>AUL bundle verifier</h1>
+        <p class="subtitle">
+          Open-source verifier for TrueTake
+          <abbr title="Authorized Use Ledger">AUL</abbr> bundles. This page loads only its own
+          JavaScript from GitHub Pages and makes no network calls except to the TSA + Solana RPC
+          endpoints you configure.
+        </p>
+        <p class="meta">
+          Source:
+          <a href="https://github.com/TrueTake/verify-aul" rel="noopener noreferrer">
+            github.com/TrueTake/verify-aul
+          </a>
+          · <a href="https://github.com/TrueTake/verify-aul/blob/main/spec/v1.0-rc.1.md">spec</a>
+        </p>
+      </header>
+
+      <section id="drop-zone-section" aria-labelledby="drop-zone-label">
+        <h2 id="drop-zone-label">1. Drop a bundle</h2>
+        <div
+          id="drop-zone"
+          role="button"
+          tabindex="0"
+          aria-describedby="drop-zone-hint"
+          aria-invalid="false"
+        >
+          <span id="drop-zone-caption">Drop a JSON verification bundle here, or click to pick.</span>
+          <input type="file" id="file-input" accept="application/json,.json" hidden />
+        </div>
+        <p id="drop-zone-hint" class="hint">
+          Max 10 MB. Nothing leaves your browser.
+        </p>
+      </section>
+
+      <details id="advanced">
+        <summary>Advanced — override anchor endpoints</summary>
+        <div class="advanced-body">
+          <label>
+            <span>Solana RPC URL</span>
+            <input
+              type="url"
+              id="solana-rpc"
+              name="solana-rpc"
+              placeholder="https://api.mainnet-beta.solana.com"
+              autocomplete="off"
+            />
+          </label>
+          <p class="hint">
+            Defaults to the per-cluster public endpoint. Any HTTPS URL works; your browser will send
+            JSON-RPC to exactly that host (observable in DevTools → Network).
+          </p>
+        </div>
+      </details>
+
+      <section id="report-section" aria-labelledby="report-label" hidden>
+        <h2 id="report-label">2. Report</h2>
+        <div id="verdict" role="status" aria-live="polite" aria-atomic="true"></div>
+        <ul id="checks" aria-label="Verification checks"></ul>
+        <p id="rpc-used" class="hint"></p>
+      </section>
+
+      <footer>
+        <p>
+          <a href="https://github.com/TrueTake/verify-aul/blob/main/SECURITY.md">Security</a> ·
+          <a href="https://github.com/TrueTake/verify-aul/blob/main/web/README.md">About this UI</a>
+        </p>
+      </footer>
+    </main>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>
