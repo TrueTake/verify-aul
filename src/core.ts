@@ -181,10 +181,15 @@ let _anchorDers: Uint8Array[] = [];
 /**
  * One-time initialization: parse bundled PEMs, extract SKIs, verify pins.
  * Throws if any cert's SKI doesn't match the pinned fingerprint.
+ *
+ * @param fingerprintsOverride - Optional alternate fingerprint map for tests.
+ *   When provided, the production cache is bypassed and the override is used.
+ *   Reached only via the `@truetake/verify-aul/testing` subpath export.
  */
-function initTrustAnchors(): Uint8Array[] {
-  if (_anchorsInitialized) return _anchorDers;
+function initTrustAnchors(fingerprintsOverride?: Record<string, string>): Uint8Array[] {
+  if (!fingerprintsOverride && _anchorsInitialized) return _anchorDers;
 
+  const fingerprints = fingerprintsOverride ?? TRUST_ANCHOR_FINGERPRINTS;
   const ders: Uint8Array[] = [];
 
   for (const entry of BUNDLED_ANCHORS) {
@@ -200,7 +205,7 @@ function initTrustAnchors(): Uint8Array[] {
     }
 
     const skiFingerprint = bytesToHex(sha256(skiBytes));
-    const expectedFingerprint = TRUST_ANCHOR_FINGERPRINTS[entry.filename];
+    const expectedFingerprint = fingerprints[entry.filename];
 
     if (!expectedFingerprint) {
       throw new Error(
@@ -222,14 +227,29 @@ function initTrustAnchors(): Uint8Array[] {
     ders.push(der);
   }
 
-  _anchorsInitialized = true;
-  _anchorDers = ders;
+  if (!fingerprintsOverride) {
+    _anchorsInitialized = true;
+    _anchorDers = ders;
+  }
   return ders;
 }
 
 // ---------------------------------------------------------------------------
 // Main entry point
 // ---------------------------------------------------------------------------
+
+/**
+ * Internal options — a superset of the public `VerifyOptions` with a
+ * fingerprint-map override used only by the test-only subpath export.
+ *
+ * The `trustAnchorFingerprints` field never appears on the public `VerifyOptions`;
+ * adding it there would signal to third-party implementers reading the spec
+ * that tests can inject trust anchors, which is not intended.
+ */
+interface InternalVerifyOptions extends VerifyOptions {
+  /** If set, used in place of the production `TRUST_ANCHOR_FINGERPRINTS` for the pin check. */
+  trustAnchorFingerprints?: Record<string, string>;
+}
 
 /**
  * Verify an AUL verification bundle.
@@ -244,6 +264,25 @@ export async function verifyBundle(
   bundle: VerificationBundle,
   options?: VerifyOptions,
 ): Promise<VerificationResult> {
+  return _verifyBundleInternal(bundle, options);
+}
+
+/**
+ * Test-only entry point, reached via `@truetake/verify-aul/testing`.
+ * Accepts a `trustAnchorFingerprints` override so fixtures-CA vectors can be
+ * verified without the production pin set.
+ */
+export async function _verifyBundleWithTestingOverrides(
+  bundle: VerificationBundle,
+  options?: InternalVerifyOptions,
+): Promise<VerificationResult> {
+  return _verifyBundleInternal(bundle, options);
+}
+
+async function _verifyBundleInternal(
+  bundle: VerificationBundle,
+  options?: InternalVerifyOptions,
+): Promise<VerificationResult> {
   const checks: Check[] = [];
   // When the caller doesn't override, pass through undefined so per-anchor
   // verify picks a cluster-appropriate default (mainnet-beta / devnet /
@@ -253,7 +292,7 @@ export async function verifyBundle(
   let rpcUrlUsed = solanaRpcOverride ?? '';
 
   // Initialize trust anchors (throws on pin mismatch)
-  const bundledAnchorDers = initTrustAnchors();
+  const bundledAnchorDers = initTrustAnchors(options?.trustAnchorFingerprints);
   const allTrustAnchors: Uint8Array[] = [...bundledAnchorDers, ...(options?.trustAnchors ?? [])];
 
   // Helper to record a check result

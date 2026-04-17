@@ -1,0 +1,18 @@
+{
+  "bundle_schema_version": 1,
+  "status": "pending",
+  "event_hash": "ccf5dfa138ab30028abbfa2910782e621b4d389d20b64bfcde15740a74bcdbb1",
+  "event": {
+    "foo": "TAMPERED",
+    "timestamp": "2026-04-17T00:00:00.000Z"
+  },
+  "server_signature": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+  "signing_key_id": "AAAAAAAAAAAAAAAA",
+  "signing_keys": [
+    {
+      "fingerprint": "AAAAAAAAAAAAAAAA",
+      "public_key_base64url": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "status": "active"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "bundle_schema_version": 1,
+  "status": "confirmed",
+  "event_hash": "ccf5dfa138ab30028abbfa2910782e621b4d389d20b64bfcde15740a74bcdbb1",
+  "merkle_proof": {
+    "leaf_index": 0,
+    "siblings": [],
+    "root": "ce4f218a9c12168b4fa002e1600e3b0f64766bdff4dc936836f502268356feda"
+  },
+  "anchors": [
+    {
+      "type": "tsa_freetsa",
+      "token": "AAAA",
+      "external_timestamp": "2026-04-17T00:00:00.000Z"
+    }
+  ],
+  "partial_anchors_reason": []
+}

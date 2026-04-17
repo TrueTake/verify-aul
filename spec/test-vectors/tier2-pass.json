@@ -1,0 +1,31 @@
+{
+  "_TODO_unit_4b": "Replaced by spec/generate-fixtures.ts once the fixtures CA + real TSA token generator land. Until then, this file documents the required shape; it is NOT a valid vector.",
+  "bundle_schema_version": 1,
+  "status": "confirmed",
+  "event_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+  "event": {
+    "_TODO_unit_4b": "Canonical event object; SHA-256(canonicalize(event)) must equal event_hash"
+  },
+  "server_signature": "<ED25519_HEX_SIGNATURE_128_CHARS>",
+  "signing_key_id": "<FINGERPRINT_16>",
+  "signing_keys": [
+    {
+      "fingerprint": "<FINGERPRINT_16>",
+      "public_key_base64url": "<B64URL_32_BYTE_PUBKEY>",
+      "status": "active"
+    }
+  ],
+  "merkle_proof": {
+    "leaf_index": 0,
+    "siblings": [],
+    "root": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "anchors": [
+    {
+      "type": "tsa_freetsa",
+      "token": "<BASE64_DER_OF_TSA_TOKEN_SIGNED_BY_FIXTURES_CA>",
+      "external_timestamp": "2026-04-17T00:00:00.000Z"
+    }
+  ],
+  "partial_anchors_reason": []
+}

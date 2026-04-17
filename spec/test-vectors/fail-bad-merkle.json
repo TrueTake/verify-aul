@@ -1,0 +1,12 @@
+{
+  "bundle_schema_version": 1,
+  "status": "confirmed",
+  "event_hash": "ccf5dfa138ab30028abbfa2910782e621b4d389d20b64bfcde15740a74bcdbb1",
+  "merkle_proof": {
+    "leaf_index": 0,
+    "siblings": [],
+    "root": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "anchors": [],
+  "partial_anchors_reason": []
+}
