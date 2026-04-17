@@ -1,0 +1,100 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+# Workflow-level permissions are intentionally minimal. The OIDC token
+# required by npm Trusted Publishing is declared on the `publish` job only.
+permissions:
+  contents: read
+
+jobs:
+  # Guardrail: the tag must be reachable from main. In solo-maintainer mode
+  # (no required signed commits yet) this is the substitute for the deferred
+  # allowed-signers check. An attacker would need to push to main first
+  # (which requires the maintainer's credentials AND produces a reviewable
+  # PR in the history) then tag it.
+  verify-tag:
+    name: Verify tag is on main
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (with full history)
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+        with:
+          fetch-depth: 0
+      - name: Check tag commit is ancestor of main
+        run: |
+          set -euo pipefail
+          TAG_SHA="${GITHUB_SHA}"
+          git fetch origin main --depth=0 || git fetch origin main
+          if ! git merge-base --is-ancestor "${TAG_SHA}" origin/main; then
+            echo "Tag commit ${TAG_SHA} is NOT reachable from main." >&2
+            echo "Releases must be cut from commits on main." >&2
+            exit 1
+          fi
+          echo "Tag commit ${TAG_SHA} is an ancestor of origin/main."
+
+  verify-repository-url:
+    name: Verify package.json repository.url matches GitHub identity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+      - name: Compare package.json repository.url to workflow identity
+        run: |
+          set -euo pipefail
+          PKG_URL=$(node -p "require('./package.json').repository.url")
+          EXPECTED="git+${{ github.server_url }}/${{ github.repository }}.git"
+          echo "package.json: ${PKG_URL}"
+          echo "expected:     ${EXPECTED}"
+          if [ "${PKG_URL}" != "${EXPECTED}" ]; then
+            echo "repository.url drift — npm provenance would reject anyway, but fail fast here." >&2
+            exit 1
+          fi
+
+  publish:
+    name: npm publish --provenance
+    runs-on: ubuntu-latest
+    needs: [verify-tag, verify-repository-url]
+    environment:
+      name: npm-publish
+      url: https://www.npmjs.com/package/@truetake/verify-aul
+    permissions:
+      # Trusted Publishing OIDC token — scoped to this job only so it never
+      # leaks to adjacent steps/jobs (changelog bots, notifiers, etc.)
+      id-token: write
+      # needed for gh release attach-shasum below
+      contents: write
+    steps:
+      - uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+      - uses: actions/setup-node@ab72c7e7eba0eaa11f8cab0f5679243900c2cac9
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+      - name: Install (ignore-scripts)
+        run: npm ci --ignore-scripts
+      - name: Build
+        run: npm run build
+      - name: Tests (belt-and-suspenders — ci.yml already ran these)
+        run: npm test
+      - name: Publish
+        run: npm publish --access public --provenance
+      - name: Build dist SHA-256 manifest for the GitHub Release
+        run: |
+          set -euo pipefail
+          (cd dist && find . -type f -print0 | xargs -0 shasum -a 256) > dist-MANIFEST.sha256
+          head dist-MANIFEST.sha256
+      - name: Create GitHub Release with manifest attached
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          gh release create "${TAG}" \
+            --title "${TAG}" \
+            --generate-notes \
+            ./dist-MANIFEST.sha256
+        env:
+          GH_TOKEN: ${{ github.token }}
