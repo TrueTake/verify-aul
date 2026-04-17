@@ -6,6 +6,13 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
 
 ## [Unreleased]
 
+## [0.1.0-alpha.3] — 2026-04-17
+
+### Fixed
+
+- **npm Trusted Publishing.** Node 22 LTS ships with npm 10.x; npm Trusted Publishing (OIDC) requires npm ≥ 11.5.1. Without the upgrade, `npm publish` sends an unauthenticated PUT (the registry answers 404 — npm's opaque "not found or not authorized" response — without even attempting the OIDC token exchange). The release workflow now runs `npm install -g npm@latest` before `npm publish`, and logs the resolved `npm --version` so future regressions surface in logs. This was the root cause of the 404s on alpha.0 / alpha.1 / alpha.2; the TP config was correct the whole time.
+- **Pages deploy BlobNotFound.** `actions/configure-pages` moved back into the `build` job. The two Pages actions (`configure-pages` and `upload-pages-artifact`) must share a job because `upload-pages-artifact` writes configuration that `deploy-pages` later reads. Splitting them broke that handoff. Build gains `pages: read` + `id-token: write`; the compromise-containment split still holds because `deploy` retains the actual `pages: write` (deployment) privilege and `build` cannot call `deploy-pages`.
+
 ## [0.1.0-alpha.2] — 2026-04-17
 
 ### Fixed
