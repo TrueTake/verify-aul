@@ -1,0 +1,10 @@
+TODO: license pending legal review. Do not distribute this repository until a license file lands here.
+
+Candidates under consideration (per TRU-625 plan):
+  - Apache-2.0 (explicit patent grant)
+  - MIT (simpler, no patent grant)
+  - Apache-2.0 + Additional Use Grant
+  - BUSL (converts to OSS after N years)
+  - PolyForm Shield / Strict
+
+Repository must not be made public until this file is replaced with a license text chosen by TrueTake legal.

@@ -1,0 +1,49 @@
+{
+  "name": "@truetake/verify-aul",
+  "version": "0.0.0",
+  "description": "Verifier for TrueTake Authorized Use Ledger (AUL) bundles. Pinned trust anchors, RFC 8785 canonicalization, RFC 6962 Merkle proofs, RFC 3161 TSA tokens, Solana memo anchors, Ed25519 signatures.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TrueTake/verify-aul.git"
+  },
+  "homepage": "https://github.com/TrueTake/verify-aul#readme",
+  "bugs": {
+    "url": "https://github.com/TrueTake/verify-aul/issues"
+  },
+  "author": "TrueTake",
+  "keywords": [
+    "aul",
+    "verification",
+    "timestamp",
+    "tsa",
+    "rfc3161",
+    "rfc8785",
+    "rfc6962",
+    "merkle-proof",
+    "ed25519",
+    "solana",
+    "provenance",
+    "audit"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "files": [
+    "dist/",
+    "src/trust-anchors/*.pem"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "echo 'TODO Unit 2: tshy build'",
+    "test": "echo 'TODO Unit 2: vitest'",
+    "typecheck": "echo 'TODO Unit 2: tsc --noEmit'",
+    "check:trust-anchors": "echo 'TODO Unit 6'",
+    "check:fingerprints-disjoint": "echo 'TODO Unit 6'",
+    "check:pack": "npx publint && npx @arethetypeswrong/cli --pack ."
+  }
+}

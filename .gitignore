@@ -1,0 +1,16 @@
+node_modules/
+dist/
+web/dist/
+coverage/
+.tshy-build/
+.tshy/
+
+# Generated at build time; committed fixtures live in spec/test-vectors/ only.
+spec/generated-fixtures/
+
+# Editor / OS noise
+.DS_Store
+.idea/
+.vscode/
+*.log
+npm-debug.log*

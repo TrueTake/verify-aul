@@ -1,0 +1,27 @@
+# Code owners for @truetake/verify-aul.
+#
+# Solo-maintainer mode (v1): CODEOWNERS is documentation — the main branch
+# Ruleset does not require code-owner review (required_approving_review_count: 0).
+# These paths are flagged as sensitive so a second maintainer can activate the
+# review requirement in one Ruleset edit.
+#
+# See SECURITY.md §4 for the full posture and what activates on second-maintainer
+# onboarding.
+
+# Security-sensitive: trust-anchor pins. Any PEM or fingerprint change must be
+# read carefully against the CA authoritative public materials.
+/src/trust-anchors/       @davecowart
+/src/core.ts              @davecowart
+
+# CI + release automation.
+/.github/                 @davecowart
+
+# Hosted UI (served from truetake.github.io; edits here change what the public
+# verifier runs).
+/web/                     @davecowart
+
+# Bundle-format spec and JSON Schema (external commitments).
+/spec/schema/             @davecowart
+
+# Default fallback.
+*                         @davecowart
