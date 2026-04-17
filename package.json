@@ -1,6 +1,6 @@
 {
   "name": "@truetake/verify-aul",
-  "version": "0.1.0-alpha.3",
+  "version": "0.1.0-alpha.4",
   "description": "Verifier for TrueTake Authorized Use Ledger (AUL) bundles. Pinned trust anchors, RFC 8785 canonicalization, RFC 6962 Merkle proofs, RFC 3161 TSA tokens, Solana memo anchors, Ed25519 signatures.",
   "type": "module",
   "engines": {
