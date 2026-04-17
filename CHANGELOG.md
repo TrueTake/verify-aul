@@ -6,6 +6,16 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
 
 ## [Unreleased]
 
+## [0.1.0-alpha.1] — 2026-04-17
+
+### Fixed
+
+- `web/index.html` CSP meta tag collapsed to a single line so the `pages.yml` verbatim-grep check passes. The policy content is unchanged.
+
+### Notes
+
+- `v0.1.0-alpha.0` was tagged and its provenance statement was signed + published to the Sigstore transparency log ([entry 1331465970](https://search.sigstore.dev/?logIndex=1331465970)), but the subsequent npm `PUT` returned 404 — likely because the Trusted Publisher configuration was saved to npmjs.com a moment after the workflow had already started. The `0.1.0-alpha.0` version was never published to the npm registry and the tag is effectively dead. `0.1.0-alpha.1` is the first version to land on npm via OIDC.
+
 ## [0.1.0-alpha.0] — 2026-04-17
 
 ### Added
