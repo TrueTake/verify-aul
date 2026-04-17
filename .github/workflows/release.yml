@@ -81,8 +81,25 @@ jobs:
         run: npm run build
       - name: Tests (belt-and-suspenders — ci.yml already ran these)
         run: npm test
+      - name: Determine npm dist-tag from version
+        id: dist-tag
+        run: |
+          set -euo pipefail
+          VERSION=$(node -p "require('./package.json').version")
+          # Pre-release versions (containing a hyphen: 0.1.0-alpha.0, 1.0.0-rc.1, ...)
+          # get routed to a `next` dist-tag so the `latest` tag keeps pointing at
+          # the most recent stable release. Stable releases (no hyphen) publish
+          # to `latest`.
+          if [[ "$VERSION" == *-* ]]; then
+            TAG=next
+          else
+            TAG=latest
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Publishing ${VERSION} to dist-tag ${TAG}"
       - name: Publish
-        run: npm publish --access public --provenance
+        run: npm publish --access public --provenance --tag ${{ steps.dist-tag.outputs.tag }}
       - name: Build dist SHA-256 manifest for the GitHub Release
         run: |
           set -euo pipefail
