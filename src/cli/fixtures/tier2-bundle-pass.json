@@ -1,0 +1,27 @@
+{
+  "bundle_schema_version": 1,
+  "status": "confirmed",
+  "event_hash": "aabbccdd00112233445566778899aabbccdd00112233445566778899aabbccdd",
+  "event": {
+    "event_id": "evt_test_001",
+    "deal_id": "deal_test_001",
+    "event_type": "deal.approved",
+    "timestamp": "2026-04-10T17:00:00.000Z"
+  },
+  "server_signature": "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+  "signing_key_id": "ZmluZ2VycHJpbnQ",
+  "signing_keys": [
+    {
+      "fingerprint": "ZmluZ2VycHJpbnQ",
+      "public_key_base64url": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "status": "active"
+    }
+  ],
+  "merkle_proof": {
+    "leaf_index": 0,
+    "siblings": [],
+    "root": "aabbccdd00112233445566778899aabbccdd00112233445566778899aabbccdd"
+  },
+  "anchors": [],
+  "partial_anchors_reason": []
+}
