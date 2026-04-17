@@ -81,6 +81,24 @@ jobs:
         run: npm run build
       - name: Tests (belt-and-suspenders — ci.yml already ran these)
         run: npm test
+      - name: Debug OIDC / environment identity (for npm TP troubleshooting)
+        run: |
+          set -euo pipefail
+          echo "GITHUB_REPOSITORY=${GITHUB_REPOSITORY}"
+          echo "GITHUB_REF=${GITHUB_REF}"
+          echo "GITHUB_REF_NAME=${GITHUB_REF_NAME}"
+          echo "GITHUB_WORKFLOW=${GITHUB_WORKFLOW}"
+          echo "GITHUB_WORKFLOW_REF=${GITHUB_WORKFLOW_REF}"
+          echo "GITHUB_JOB=${GITHUB_JOB}"
+          echo "GITHUB_EVENT_NAME=${GITHUB_EVENT_NAME}"
+          # Fetch the OIDC ID token for the npm registry audience and decode its payload.
+          TOKEN=$(curl -sSL \
+            -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=npm:registry.npmjs.org" \
+            | node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{const t=JSON.parse(d).value;console.log(t);})')
+          PAYLOAD=$(echo "$TOKEN" | cut -d. -f2 | tr '_-' '/+' | awk '{l=length($0)%4;if(l)printf "%s%s",$0,substr("====",0,4-l);else print}' | base64 -d 2>/dev/null || true)
+          echo "--- OIDC claims (selected) ---"
+          echo "$PAYLOAD" | node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{const o=JSON.parse(d);console.log(JSON.stringify({repository:o.repository,workflow:o.workflow,workflow_ref:o.workflow_ref,job_workflow_ref:o.job_workflow_ref,environment:o.environment,ref:o.ref,ref_type:o.ref_type,event_name:o.event_name,sub:o.sub,aud:o.aud},null,2))})'
       - name: Determine npm dist-tag from version
         id: dist-tag
         run: |

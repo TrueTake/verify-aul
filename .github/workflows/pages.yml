@@ -46,16 +46,15 @@ jobs:
         run: |
           test -f web/dist/MANIFEST.sha256
           test -s web/dist/MANIFEST.sha256
-      - name: Configure Pages
-        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d
       - name: Upload artifact
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9
         with:
           path: web/dist
 
-  # Deploy runs with `pages: write` + `id-token: write` only, no contents
-  # access. It consumes the artifact produced by `build`; it does not run
-  # arbitrary user code.
+  # Deploy runs with `pages: write` + `id-token: write` only. It consumes the
+  # artifact produced by `build`; it does not run arbitrary user code.
+  # `configure-pages` and `deploy-pages` both live here — the former needs
+  # `pages: write` which we deliberately keep out of the build job.
   deploy:
     name: Deploy to GitHub Pages
     needs: build
@@ -67,6 +66,8 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - name: Configure Pages
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128
