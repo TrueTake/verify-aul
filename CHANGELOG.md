@@ -6,6 +6,82 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
 
 ## [Unreleased]
 
+## [1.1.0-alpha.0] — 2026-04-20
+
+**Field-disclosure support.** Adds a `verify-field` CLI subcommand and the
+field-commitment primitives that back it, along with spec §10 covering
+the normative on-wire format. Pre-release while we land the companion
+platform PR (bumps the dep and regenerates platform's gold file from
+this OSS implementation, closing the cross-impl byte-equality loop).
+
+### Added
+
+- **`verify-field` CLI subcommand** — verifies a single-field Merkle
+  disclosure against its companion verification bundle. Flags:
+  `--disclosure <path>`, `--bundle <path>`, `--candidate <VALUE>`, and
+  `--candidate-file <path>` (mutually exclusive with `--candidate`;
+  prefer it for sensitive values to avoid argv leakage). Mandatory
+  `verifyBundle` step and strict 64-char lowercase hex `event_hash`
+  binding — no escape hatch.
+- **Field-commitment primitives** — `src/field-commitment.ts` exposes
+  `canonicalizeFieldValue`, `computeLeafHash`, and `verifyFieldProof`,
+  used by the CLI handler. **CLI-internal** — not re-exported from
+  `src/index.ts` or `src/testing.ts` in this release. External verifier
+  implementations work from spec §10 and the disclosure test vectors.
+- **Spec §10** — *Field-disclosure bundles (v1)*. Normative prose for
+  leaf / node prefixes, 16-byte salt, per-field canonicalization
+  (`approver.email` → NFC + trim + lowercase; other paths reserved),
+  disclosure payload shape, `event_hash` binding rule, and the §10.8
+  verification algorithm. Includes §10.10 operational guidance
+  (Solana RPC trust, 10 MB payload cap, argv-leak caveat, release
+  cadence for new `field_path` values).
+- **`spec/schema/disclosure.v1.json`** — JSON Schema for the
+  field-disclosure payload. `scripts/check-schema-vectors.ts` routes
+  vectors to the bundle or disclosure schema based on the presence of
+  `field_path`.
+- **Four disclosure test vectors** under `spec/test-vectors/`:
+  `field-commitment-pass` (primitives happy path), `-binding` (bound
+  to `tier2-pass.json`'s `event_hash` — exercises the CLI end-to-end),
+  `-nfc` (NFD → NFC invariant pin), `-fail` (tampered root). External
+  verifier implementations MUST use all four.
+- **Platform-parity byte-equality fixture** at
+  `spec/test-vectors/platform-parity/field-commitment.json` — copied
+  from platform's `field-commitments.json`. `src/platform-parity.test.ts`
+  asserts this package's `computeLeafHash` reproduces platform's
+  `expected_leaf_hashes` byte-for-byte. Drift caught in this repo's CI,
+  not in a follow-up PR.
+- **Split fixtures generator** — new `npm run fixtures:generate:offline`
+  emits only the deterministic field-commitment vectors (no network, no
+  fresh CA keys). CI gates byte-equality on the offline outputs via
+  `git diff --exit-code`. `npm run fixtures:generate` retains the full
+  behavior (offline + network).
+- `spec/v1.md` §10.9 catalog linking all four disclosure vectors plus
+  the platform-parity fixture.
+
+### Changed
+
+- `package.json.version` → `1.1.0-alpha.0`. Minor bump: new CLI
+  subcommand, new public capability. Alpha: landing in platform behind a
+  dep-bump PR before promoting to stable.
+- `spec/README.md` — indexes both schemas and documents the offline
+  fixtures phase.
+- CLI `--help` lists the `verify-field` subcommand and its flags.
+
+### Notes
+
+- **Platform-side follow-up PR (not in this release).** Bumps the
+  `@truetake/verify-aul` dep to `1.1.0-alpha.0`, regenerates platform's
+  `field-commitments.json` gold file against this implementation, and
+  reruns platform's byte-equality fixture test. That closes the
+  two-implementation parity loop. The platform-parity fixture in this
+  release is the short-term guard against OSS-side drift before that
+  downstream PR lands.
+- **Release cadence.** Adding a new supported `field_path` to spec §10.4
+  requires a minor-version bump here — verifiers older than the bump
+  MUST reject the new path. A future release MAY adopt a declarative
+  `canonicalization` field inside the disclosure payload to decouple
+  field additions from verifier release cadence; not in scope for v1.
+
 ## [1.0.0] — 2026-04-20
 
 **First stable release.** The API, CLI flags, and bundle format (`bundle_schema_version: 1`) are now covered by semver — no breaking changes until a new major version.

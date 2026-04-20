@@ -1,6 +1,6 @@
 {
   "name": "@truetake/verify-aul",
-  "version": "1.0.0",
+  "version": "1.1.0-alpha.0",
   "description": "Verifier for TrueTake Authorized Use Ledger (AUL) bundles. Pinned trust anchors, RFC 8785 canonicalization, RFC 6962 Merkle proofs, RFC 3161 TSA tokens, Solana memo anchors, Ed25519 signatures.",
   "type": "module",
   "engines": {
@@ -83,6 +83,7 @@
     "check:fingerprints-disjoint": "tsx scripts/check-fingerprints-disjoint.ts",
     "check:schema-vectors": "tsx scripts/check-schema-vectors.ts",
     "fixtures:generate": "tsx spec/generate-fixtures.ts",
+    "fixtures:generate:offline": "tsx spec/generate-fixtures.ts --offline",
     "clean": "rm -rf dist .tshy-build web/dist"
   },
   "dependencies": {
