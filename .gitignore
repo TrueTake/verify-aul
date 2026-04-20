@@ -14,6 +14,9 @@ docs/plans/
 docs/brainstorms/
 docs/solutions/
 
+# Local tooling state (ce-code-review artifacts, transient scratchpads).
+.context/
+
 # Editor / OS noise
 .DS_Store
 .idea/
