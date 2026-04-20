@@ -2,8 +2,6 @@
 
 Open-source verifier for TrueTake [Authorized Use Ledger](https://www.truetake.com) (AUL) bundles.
 
-> **Status:** pre-release. First alpha ships once governance, license, and npm scope prerequisites land. See [TRU-625](https://linear.app/truetake/issue/TRU-625).
-
 ## What this verifies
 
 A **verification bundle** is the full evidence envelope for a single AUL event:
@@ -58,11 +56,11 @@ The hosted UI can be rebuilt from this repository and compared against the deplo
 git checkout <tag>
 npm ci
 npm run build
-node web/build.mjs
-scripts/verify-reproducible-build.sh <downloaded-dist-dir>
+npm run build:web
+diff <(sort web/dist/MANIFEST.sha256) <(sort <downloaded-dist-dir>/MANIFEST.sha256)
 ```
 
-Byte-identical diffs are unreliable across OS / filesystem / locale; the repo-committed normalizer strips source-map comments and normalizes line endings, then compares SHA-256.
+Byte-identical diffs are unreliable across OS / filesystem / locale, so the build emits a per-file SHA-256 manifest (`web/dist/MANIFEST.sha256`, also shipped alongside the deployed Pages artifact at `/MANIFEST.sha256`) for comparison instead.
 
 ## License
 
