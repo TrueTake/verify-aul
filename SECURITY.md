@@ -4,8 +4,6 @@
 
 Report security issues privately to **security@truetake.com**.
 
-PGP key: TODO — publish key fingerprint here before the repository goes public. Until then, encrypted reports can be coordinated via the email address above.
-
 Please do **not** file a GitHub issue for security-sensitive reports.
 
 ## 2. Supported versions
