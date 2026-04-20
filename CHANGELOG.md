@@ -6,6 +6,32 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
 
 ## [Unreleased]
 
+## [1.1.0-alpha.1] — 2026-04-20
+
+**Expose field-commitment primitives on the `./testing` subpath.** Follow-up
+to `1.1.0-alpha.0` so the TrueTake platform gold-file generator
+(`server/services/ledger/__fixtures__/field-commitments.json`) can be
+rewired to produce leaves via this package's `@noble/hashes`-based
+`computeLeafHash` instead of the commit-side `node:crypto` one. That's
+what actually closes the cross-implementation byte-equality loop that
+`1.1.0-alpha.0` set up on this side.
+
+### Added
+
+- **`./testing` subpath now re-exports** `canonicalizeFieldValue`,
+  `computeLeafHash`, `verifyFieldProof`, `ENCODING_VERSION`,
+  `DISCLOSABLE_FIELDS`, `FieldCommitmentError`, and the
+  `DisclosableField` / `FieldCommitmentErrorCode` types. These remain
+  absent from the public `.` entry point — the "external verifiers
+  implement from the spec" stance is preserved for production consumers;
+  the `./testing` surface is scoped to fixture-generation parity work.
+
+### Notes
+
+- No behavioral change in `src/field-commitment.ts`; this is a
+  surface-exposure bump only. No spec change. No disclosure-format
+  change.
+
 ## [1.1.0-alpha.0] — 2026-04-20
 
 **Field-disclosure support.** Adds a `verify-field` CLI subcommand and the
