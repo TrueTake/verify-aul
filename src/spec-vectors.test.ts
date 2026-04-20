@@ -20,9 +20,11 @@ import { describe, expect, it } from 'vitest';
 import { readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { hexToBytes } from '@noble/hashes/utils.js';
 
 import { verifyBundle } from './core.js';
-import type { VerificationBundle } from './types.js';
+import { computeLeafHash, verifyFieldProof } from './field-commitment.js';
+import type { MerkleSibling, VerificationBundle } from './types.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const VECTORS_DIR = resolve(__dirname, '..', 'spec', 'test-vectors');
@@ -57,4 +59,91 @@ describe('spec vectors', () => {
       expect(result.verdict).toBe(vector.expectedVerdict);
     });
   }
+});
+
+// ---------------------------------------------------------------------------
+// Field-commitment vectors (§10.9) — primitives only
+//
+// These vectors do not flow through `verifyBundle`; they exercise the
+// field-commitment primitives directly. The end-to-end CLI binding vector
+// (`field-commitment-binding`) lives in `spec-vectors.field-commitment.test.ts`
+// because it requires `vi.mock('./core.js')`, which is module-hoisted and
+// would silently stub the real `verifyBundle` for the bundle vectors above
+// if declared in this file.
+// ---------------------------------------------------------------------------
+
+interface DisclosureVector {
+  field_path: string;
+  field_value: string;
+  salt: string;
+  merkle_path: MerkleSibling[];
+  root: string;
+  event_hash: string;
+}
+
+async function loadDisclosure(filename: string): Promise<DisclosureVector> {
+  const path = resolve(VECTORS_DIR, filename);
+  const raw = await readFile(path, 'utf-8');
+  return JSON.parse(raw) as DisclosureVector;
+}
+
+function base64UrlToBytes(b64url: string): Uint8Array {
+  return Uint8Array.from(Buffer.from(b64url, 'base64url'));
+}
+
+describe('field-commitment primitives vectors (spec §10.9)', () => {
+  it('field-commitment-pass: candidate canonicalizes to field_value and proof verifies', async () => {
+    const v = await loadDisclosure('field-commitment-pass.json');
+    const salt = base64UrlToBytes(v.salt);
+    // Candidate in mixed case + trailing space canonicalizes to field_value.
+    const candidate = 'Alice@Example.COM ';
+    const leafHash = computeLeafHash(v.field_path, candidate, salt);
+    // Cross-check: the canonical form produces the same leaf.
+    expect(computeLeafHash(v.field_path, v.field_value, salt)).toBe(leafHash);
+    expect(verifyFieldProof(leafHash, v.merkle_path, v.root)).toBe(true);
+  });
+
+  it('field-commitment-nfc: NFD candidate produces same leaf as NFC field_value', async () => {
+    const v = await loadDisclosure('field-commitment-nfc.json');
+    const salt = base64UrlToBytes(v.salt);
+    const nfdCandidate = 'cafe\u0301@example.com'; // decomposed
+    const nfcLeaf = computeLeafHash(v.field_path, v.field_value, salt);
+    const nfdLeaf = computeLeafHash(v.field_path, nfdCandidate, salt);
+    expect(nfdLeaf).toBe(nfcLeaf);
+    expect(verifyFieldProof(nfdLeaf, v.merkle_path, v.root)).toBe(true);
+  });
+
+  it('field-commitment-fail: proof verification returns false (tampered root)', async () => {
+    const v = await loadDisclosure('field-commitment-fail.json');
+    const salt = base64UrlToBytes(v.salt);
+    const leafHash = computeLeafHash(v.field_path, v.field_value, salt);
+    expect(verifyFieldProof(leafHash, v.merkle_path, v.root)).toBe(false);
+  });
+
+  it('salt fields are 16 bytes after base64url decode', async () => {
+    for (const filename of [
+      'field-commitment-pass.json',
+      'field-commitment-binding.json',
+      'field-commitment-nfc.json',
+      'field-commitment-fail.json',
+    ]) {
+      const v = await loadDisclosure(filename);
+      expect(base64UrlToBytes(v.salt).length, `${filename} salt bytes`).toBe(16);
+    }
+  });
+
+  it('root and event_hash fields are 64-char lowercase hex', async () => {
+    for (const filename of [
+      'field-commitment-pass.json',
+      'field-commitment-binding.json',
+      'field-commitment-nfc.json',
+      'field-commitment-fail.json',
+    ]) {
+      const v = await loadDisclosure(filename);
+      expect(v.root, `${filename} root`).toMatch(/^[0-9a-f]{64}$/);
+      expect(v.event_hash, `${filename} event_hash`).toMatch(/^[0-9a-f]{64}$/);
+      // Ensure hex is decodable as bytes.
+      expect(hexToBytes(v.root).length).toBe(32);
+    }
+  });
 });

@@ -105,6 +105,13 @@ jobs:
           cache: npm
       - run: npm ci --ignore-scripts
       - run: npm run check:schema-vectors
+      # Determinism gate: the offline phase must produce byte-identical
+      # field-commitment vectors on every run. Network phase is excluded
+      # (TSA minting + fresh fixtures CA keys are non-deterministic).
+      - name: Regenerate offline field-commitment vectors
+        run: npm run fixtures:generate:offline
+      - name: Verify no diff in field-commitment vectors
+        run: git diff --exit-code spec/test-vectors/field-commitment-*.json
 
   web-build:
     name: Web UI (esbuild)

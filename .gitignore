@@ -8,6 +8,15 @@ coverage/
 # Generated at build time; committed fixtures live in spec/test-vectors/ only.
 spec/generated-fixtures/
 
+# Local planning artifacts — this is a public repo; internal plans,
+# brainstorms, and solution writeups live in Linear / internal docs, not here.
+docs/plans/
+docs/brainstorms/
+docs/solutions/
+
+# Local tooling state (ce-code-review artifacts, transient scratchpads).
+.context/
+
 # Editor / OS noise
 .DS_Store
 .idea/

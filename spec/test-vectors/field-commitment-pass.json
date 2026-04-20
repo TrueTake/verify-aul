@@ -1,0 +1,17 @@
+{
+  "field_path": "approver.email",
+  "field_value": "alice@example.com",
+  "salt": "KioqKioqKioqKioqKioqKg",
+  "merkle_path": [
+    {
+      "hash": "1111111111111111111111111111111111111111111111111111111111111111",
+      "direction": "left"
+    },
+    {
+      "hash": "2222222222222222222222222222222222222222222222222222222222222222",
+      "direction": "right"
+    }
+  ],
+  "root": "e8cf7dd3acec444e1b3c0121b7c94c49499814c08efd313b9946da156068cbca",
+  "event_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+}

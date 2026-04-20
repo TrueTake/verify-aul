@@ -31,10 +31,40 @@ console.log(result.verdict); // 'pass' | 'partial' | 'fail'
 ## CLI
 
 ```bash
+# Verify a Tier 2 bundle (event + signature + anchors).
 npx @truetake/verify-aul bundle ./some-bundle.json
+
+# Verify a Tier 1 proof (anchors only, no event/signature).
+npx @truetake/verify-aul proof ./some-proof.json
+
+# Verify a single-field Merkle disclosure against its companion bundle (spec §10).
+npx @truetake/verify-aul verify-field \
+  --bundle ./bundle.json --disclosure ./disclosure.json \
+  --candidate alice@example.com
 ```
 
-Exit codes: `0` pass, `1` fail/partial, `2` usage error.
+Exit codes: `0` pass, `1` fail/partial/error, `2` usage error.
+
+### `verify-field` — sensitive candidate values
+
+`--candidate <VALUE>` leaks the disclosed value to argv (`/proc`, `ps`, shell
+history, CI logs). For anything resembling PII, prefer `--candidate-file`,
+which reads UTF-8 file contents (minus a single trailing newline):
+
+```bash
+npx @truetake/verify-aul verify-field \
+  --bundle ./bundle.json --disclosure ./disclosure.json \
+  --candidate-file ./candidate.txt
+```
+
+### Operational notes
+
+- **Solana RPC trust.** Bundle verification trusts the Solana RPC endpoint
+  for transaction confirmation data. Operators SHOULD pin a known-good
+  endpoint via `--solana-rpc <url>` or query multiple endpoints and
+  compare. See [spec §10.10](./spec/v1.md#1010-trust-model-and-operational-constraints).
+- **Payload size.** The CLI refuses bundle / disclosure files larger than
+  10 MB to mitigate DoS against automated verification pipelines.
 
 ## Hosted UI
 
@@ -46,7 +76,7 @@ The verifier trusts **only** the CA fingerprints pinned in `src/trust-anchors/fi
 
 ## Spec
 
-The bundle format is documented in [`spec/v1.md`](./spec/v1.md). JSON Schema: [`spec/schema/bundle.v1.json`](./spec/schema/bundle.v1.json). Eight reference test vectors live in [`spec/test-vectors/`](./spec/test-vectors/).
+The bundle format is documented in [`spec/v1.md`](./spec/v1.md). Field-disclosure payloads are documented in [`spec/v1.md` §10](./spec/v1.md#10-field-disclosure-bundles-v1). JSON Schemas: [`spec/schema/bundle.v1.json`](./spec/schema/bundle.v1.json), [`spec/schema/disclosure.v1.json`](./spec/schema/disclosure.v1.json). Reference test vectors — including four disclosure vectors and a platform-parity fixture — live in [`spec/test-vectors/`](./spec/test-vectors/).
 
 ## Reproducible build
 

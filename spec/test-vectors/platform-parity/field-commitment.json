@@ -1,0 +1,145 @@
+{
+  "description": "Golden fixtures for AUL field-commitment canonicalization + Merkle primitives. Generated from lib/verify-aul/field-commitment.ts via generate-field-commitments.ts. Loaded by both verifier-side and commit-side tests to enforce byte-level agreement.",
+  "encoding_version": "v1",
+  "fixtures": [
+    {
+      "description": "v1 primary case: single leaf, approver.email only",
+      "inputs": [
+        {
+          "field_name": "approver.email",
+          "value": "talent.primary@test.com",
+          "salt_hex": "000102030405060708090a0b0c0d0e0f"
+        }
+      ],
+      "expected_leaf_hashes": ["8d8c283da0dbdfa107c5a97eb92203b6a1256720f174cdb358bbe0c7e48952f5"],
+      "expected_root": "8d8c283da0dbdfa107c5a97eb92203b6a1256720f174cdb358bbe0c7e48952f5",
+      "proofs": [
+        {
+          "leaf_index": 0,
+          "path": []
+        }
+      ]
+    },
+    {
+      "description": "email canonicalization: mixed case + whitespace",
+      "inputs": [
+        {
+          "field_name": "approver.email",
+          "value": "  Maya@Example.COM  ",
+          "salt_hex": "101112131415161718191a1b1c1d1e1f"
+        }
+      ],
+      "expected_leaf_hashes": ["c97372a9699bd5d5fdc695a62f16079b589a9bf6861dd19732706cdf27d3a199"],
+      "expected_root": "c97372a9699bd5d5fdc695a62f16079b589a9bf6861dd19732706cdf27d3a199",
+      "proofs": [
+        {
+          "leaf_index": 0,
+          "path": []
+        }
+      ]
+    },
+    {
+      "description": "v2-ready primitive: two approver.email leaves (same field, different values)",
+      "inputs": [
+        {
+          "field_name": "approver.email",
+          "value": "a@example.com",
+          "salt_hex": "20212223242526272829222222222222"
+        },
+        {
+          "field_name": "approver.email",
+          "value": "b@example.com",
+          "salt_hex": "30313233343536373839333333333333"
+        }
+      ],
+      "expected_leaf_hashes": [
+        "f71401f3d08896b254a5e012f6f3f69c2a45bda3f1662b6486493e886698305c",
+        "d924c17ad78e1368fd9a402c60803fc67787f2400879e1f4f104fd22b7b6339e"
+      ],
+      "expected_root": "c6640318bfd82497e5251c10bf3ba0ed234e6e96fe7bbeef6e34fe7f5305fb04",
+      "proofs": [
+        {
+          "leaf_index": 0,
+          "path": [
+            {
+              "hash": "d924c17ad78e1368fd9a402c60803fc67787f2400879e1f4f104fd22b7b6339e",
+              "direction": "right"
+            }
+          ]
+        },
+        {
+          "leaf_index": 1,
+          "path": [
+            {
+              "hash": "f71401f3d08896b254a5e012f6f3f69c2a45bda3f1662b6486493e886698305c",
+              "direction": "left"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "v2-ready primitive: three leaves (odd-level promotion)",
+      "inputs": [
+        {
+          "field_name": "approver.email",
+          "value": "a@example.com",
+          "salt_hex": "40414243444546474849444444444444"
+        },
+        {
+          "field_name": "approver.email",
+          "value": "b@example.com",
+          "salt_hex": "50515253545556575859555555555555"
+        },
+        {
+          "field_name": "approver.email",
+          "value": "c@example.com",
+          "salt_hex": "60616263646566676869666666666666"
+        }
+      ],
+      "expected_leaf_hashes": [
+        "0eef384fd9e787d06c616c22268a838711f17af90bfcac44f3aeab70d5cdab5b",
+        "d0ff5afbcfe1aeba5f2edb50d02d04745cea979577c896f2df7121b0848c9f0e",
+        "ac0d1ddad49230666c56f992dda00bdf213cd081f7fa6333ff4f8a207fea5bf7"
+      ],
+      "expected_root": "28af6c5a2deddb3144ced75f9cb8484be0a920fe2d880f792c65d3d66792207e",
+      "proofs": [
+        {
+          "leaf_index": 0,
+          "path": [
+            {
+              "hash": "d0ff5afbcfe1aeba5f2edb50d02d04745cea979577c896f2df7121b0848c9f0e",
+              "direction": "right"
+            },
+            {
+              "hash": "ac0d1ddad49230666c56f992dda00bdf213cd081f7fa6333ff4f8a207fea5bf7",
+              "direction": "right"
+            }
+          ]
+        },
+        {
+          "leaf_index": 1,
+          "path": [
+            {
+              "hash": "0eef384fd9e787d06c616c22268a838711f17af90bfcac44f3aeab70d5cdab5b",
+              "direction": "left"
+            },
+            {
+              "hash": "ac0d1ddad49230666c56f992dda00bdf213cd081f7fa6333ff4f8a207fea5bf7",
+              "direction": "right"
+            }
+          ]
+        },
+        {
+          "leaf_index": 2,
+          "path": [
+            {
+              "hash": "a70f2574265d093bd3b0abf71ef1d710a0d70a7cbe8a373736abf364f2419a53",
+              "direction": "left"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

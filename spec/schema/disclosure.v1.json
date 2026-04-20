@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/TrueTake/verify-aul/blob/main/spec/schema/disclosure.v1.json",
+  "title": "AUL Field-Disclosure Bundle v1",
+  "description": "JSON Schema for the field-disclosure payload format defined in spec/v1.md §10. Normative for structural validation.",
+  "type": "object",
+  "required": ["field_path", "field_value", "salt", "merkle_path", "root", "event_hash"],
+  "additionalProperties": false,
+  "properties": {
+    "field_path": {
+      "description": "Dot-notation path of the disclosed field (e.g., `approver.email`). The schema validates shape only; the allowed value set is normative in spec §10.4 and enforced by the verifier. Adding a new supported field_path in §10.4 is a minor-version change to the spec that does NOT require bumping disclosure.v1.json to v2 — kept here so frozen vectors remain structurally valid across spec minor revisions.",
+      "type": "string",
+      "minLength": 1
+    },
+    "field_value": {
+      "description": "Canonicalized field value (per §10.4 rule for field_path). UTF-8 string.",
+      "type": "string"
+    },
+    "salt": {
+      "description": "16-byte salt, unpadded base64url (22-char alphabet [A-Za-z0-9_-]).",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{22}$"
+    },
+    "merkle_path": {
+      "description": "Sibling path from leaf to root (may be empty for single-leaf trees).",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["hash", "direction"],
+        "additionalProperties": false,
+        "properties": {
+          "hash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "direction": {
+            "type": "string",
+            "enum": ["left", "right"]
+          }
+        }
+      }
+    },
+    "root": {
+      "description": "Merkle root of the per-event field-commitment tree. 64-char lowercase hex.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "event_hash": {
+      "description": "Binding to the verification bundle. MUST equal bundle.event_hash exactly. 64-char lowercase hex.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}

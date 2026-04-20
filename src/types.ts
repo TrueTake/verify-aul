@@ -16,6 +16,26 @@ export interface MerkleSibling {
   direction: 'left' | 'right';
 }
 
+/**
+ * Field-disclosure payload shape (spec §10.2).
+ *
+ * The normative shape is defined in `spec/schema/disclosure.v1.json` and §10.2
+ * of `spec/v1.md`. This TypeScript interface is illustrative — it matches the
+ * schema's required fields but does not substitute for schema validation at
+ * I/O boundaries.
+ */
+export interface Disclosure {
+  field_path: string;
+  field_value: string;
+  /** 16-byte salt, unpadded base64url (22 chars). */
+  salt: string;
+  merkle_path: MerkleSibling[];
+  /** 64-char lowercase hex. MUST equal `bundle.event.metadata.event_root` (§10.7). */
+  root: string;
+  /** 64-char lowercase hex. MUST equal `bundle.event_hash` (§10.7). */
+  event_hash: string;
+}
+
 /** RFC 6962 Merkle inclusion proof. */
 export interface MerkleProof {
   leaf_index: number;
