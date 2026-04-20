@@ -3,9 +3,9 @@
 **Expected verdict (primitives):** `pass`.
 
 **Scope:** Pins the Unicode Normalization Form C (NFC) invariant
-declared in spec §10.4. The committed `field_value` is in NFC form; a
-candidate in NFD form that composes to the same codepoints under NFC
-MUST verify against this disclosure.
+declared in spec §10.4. The committed value hashed into the frozen leaf
+is in NFC form; a candidate in NFD form that composes to the same
+codepoints under NFC MUST verify against this disclosure.
 
 ## Candidates that should verify against this disclosure
 
@@ -17,10 +17,10 @@ MUST verify against this disclosure.
 Both strings, when canonicalized under the §10.4 rule (NFC → trim →
 lowercase), produce identical bytes and therefore identical leaf hashes.
 
-The NFC form is the committed `field_value`. The NFD form (`caf` + `e` +
-combining acute `U+0301` + `@example.com`) is the candidate
-documentation in this `.md`; a verifier handed the NFD candidate MUST
-produce verdict `pass`.
+The NFC form is the committed value hashed into the leaf. The NFD form
+(`caf` + `e` + combining acute `U+0301` + `@example.com`) is documented
+here for candidate-side clarity; a verifier handed the NFD candidate
+MUST produce verdict `pass`.
 
 ## Tree shape
 

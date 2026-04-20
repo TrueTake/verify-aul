@@ -130,7 +130,7 @@ function stripTrailingNewline(s: string): string {
 function validateDisclosureShape(
   raw: Record<string, unknown>,
 ): { disclosure: Disclosure } | { error: string } {
-  const requiredStringFields = ['field_path', 'field_value', 'salt', 'root', 'event_hash'] as const;
+  const requiredStringFields = ['field_path', 'salt', 'root', 'event_hash'] as const;
   for (const f of requiredStringFields) {
     if (typeof raw[f] !== 'string') {
       return { error: `disclosure missing or invalid '${f}' (expected string)` };
@@ -179,7 +179,6 @@ function validateDisclosureShape(
   return {
     disclosure: {
       field_path: fieldPath,
-      field_value: raw.field_value as string,
       salt,
       merkle_path: siblings,
       root,
@@ -392,7 +391,7 @@ export async function runVerifyFieldCommand(opts: VerifyFieldCommandOptions): Pr
   // Step 3: checkBindingRoot (spec §10.7 Binding B) — disclosure.root MUST
   // equal bundle.event.metadata.event_root. Without this check, an attacker
   // with any legitimate bundle can forge a disclosure for an attacker-chosen
-  // field_value (fresh salt + merkle_path=[] + root=computeLeafHash(...)).
+  // candidate (fresh salt + merkle_path=[] + root=computeLeafHash(candidate, salt)).
   // event_root is committed transitively by event_hash via verifyBundle's
   // canonical_recompute, so Binding A + Binding B together anchor the
   // disclosed Merkle root to the signed + Solana-anchored event.

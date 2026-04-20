@@ -1,6 +1,5 @@
 {
   "field_path": "approver.email",
-  "field_value": "alice@example.com",
   "salt": "KioqKioqKioqKioqKioqKg",
   "merkle_path": [
     {

@@ -6,6 +6,68 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
 
 ## [Unreleased]
 
+## [1.1.0-alpha.2] — 2026-04-20
+
+**Drop `field_value` from the disclosure wire format.** The v1 disclosure
+payload defined in spec §10.2 previously required a top-level
+`field_value: string` field carrying the canonicalized committed value.
+The `verify-field` CLI's shape validator required it, but nothing
+downstream ever read it — verification is performed by folding the
+separately-supplied `--candidate` flag via `computeLeafHash` and
+comparing against `disclosure.root`. The `field_value` field was
+cryptographically redundant and leaked PII in cleartext at rest.
+
+This is the companion alpha to the downstream platform disclosure-route
+wire-format fix (TRU-705). No published consumer was depending on the
+1.1.0-alpha.1 disclosure shape — the platform-side endpoint never
+conformed to it — so this change is landing inside the alpha train
+rather than as a spec-major bump.
+
+### Changed (spec & wire format)
+
+- **Spec §10.2** — `field_value` removed from the disclosure payload
+  shape. Required field count drops from 6 to 5 (`field_path`, `salt`,
+  `merkle_path`, `root`, `event_hash`). Added explicit "disclosure MUST
+  NOT carry the committed value" language to match the design intent.
+- **`spec/schema/disclosure.v1.json`** — `field_value` removed from
+  `required` and `properties`. The schema still enforces
+  `additionalProperties: false`, so emitting `field_value` (or any
+  other unspecified field) now fails schema validation.
+- **Prose in §10.7 ("Why both")** — "attacker-chosen `field_value`"
+  reworded to "attacker-chosen candidate" to reflect how the attack is
+  actually mounted under the candidate-is-supplied-separately model.
+
+### Changed (reference implementation)
+
+- **`src/cli/verify-field.ts`** — `field_value` removed from
+  `requiredStringFields` and from the `Disclosure` type assembly in
+  `validateDisclosureShape`. Behavior is otherwise identical.
+- **`src/types.ts`** — `Disclosure.field_value` dropped from the
+  exported interface.
+
+### Changed (test vectors)
+
+- `spec/test-vectors/field-commitment-pass.json`,
+  `field-commitment-fail.json`, `field-commitment-nfc.json`, and
+  `field-commitment-binding.json` — `field_value` key removed.
+- `spec/generate-fixtures.ts` — stops emitting `field_value`.
+- Co-located `.md` docs reworded to refer to "the committed value" (a
+  value known to the commit side, not on the wire) instead of
+  "`field_value`" (a wire field that no longer exists).
+
+### Migration
+
+External verifiers and upstream commit sides built against
+`1.1.0-alpha.1`:
+
+- **Commit sides (e.g., TrueTake platform):** stop emitting
+  `field_value`. No replacement; the value is never sent.
+- **Verifiers:** no change needed if they were already ignoring
+  `field_value`. Verifiers that were trying to read it should switch
+  to requiring the candidate value out-of-band (via CLI flag, operator
+  input, etc.) and folding via `computeLeafHash`. That's what the
+  reference CLI has always done under the hood.
+
 ## [1.1.0-alpha.1] — 2026-04-20
 
 **Expose field-commitment primitives on the `./testing` subpath.** Follow-up

@@ -105,12 +105,15 @@ function makePassFixtures(overrides: {
   }
   const disclosure = {
     field_path: 'approver.email',
-    field_value: fieldValue,
     salt: saltB64,
     merkle_path: [],
     root,
     event_hash: overrides.disclosureEventHash ?? eventHash,
   };
+  // `fieldValue` is the value the commit side hashed into the frozen leaf;
+  // disclosures never carry it on the wire. Returned so tests that need the
+  // canonical bytes for parity checks can read it out-of-band.
+  void fieldValue;
   return { bundle, disclosure, candidate };
 }
 
@@ -212,7 +215,7 @@ describe('verify-field CLI', () => {
       await rm(dir, { recursive: true });
     });
 
-    it('canonicalizes mixed-case candidate to match field_value', async () => {
+    it('canonicalizes mixed-case candidate to match the committed value', async () => {
       vi.mocked(verifyBundle).mockResolvedValue(PASS_BUNDLE_RESULT);
       const { bundle, disclosure } = makePassFixtures();
       const { bundlePath, disclosurePath, dir } = await writeFixtures(bundle, disclosure);
@@ -580,12 +583,12 @@ describe('verify-field CLI', () => {
   });
 
   describe('Binding check — event_root (spec §10.7 Binding B / adv-01 regression)', () => {
-    it('ATTACK: forged disclosure with attacker-chosen field_value + matching leaf+root is REJECTED', async () => {
+    it('ATTACK: forged disclosure with attacker-chosen candidate + matching leaf+root is REJECTED', async () => {
       // Adversarial scenario: attacker has a legitimate bundle (i.e. a bundle
       // whose event_hash matches a real anchored event). Attacker fabricates
-      // a disclosure with fresh salt + their chosen field_value + merkle_path=[]
-      // + root=computeLeafHash(attackerValue, freshSalt). Without a Binding B
-      // check, verdict would be `pass` with the attacker's chosen value.
+      // a disclosure with fresh salt + merkle_path=[] + root=computeLeafHash(
+      // attackerCandidate, freshSalt), and runs the CLI with --candidate
+      // attackerCandidate. Without a Binding B check, verdict would be `pass`.
       //
       // The bundle's real event.metadata.event_root is the committed tree's
       // root (from the real data). The attacker's fabricated root does NOT
@@ -614,7 +617,6 @@ describe('verify-field CLI', () => {
       };
       const forgedDisclosure = {
         field_path: 'approver.email',
-        field_value: attackerValue,
         salt: attackerSaltB64,
         merkle_path: [],
         root: attackerLeaf, // attacker-chosen; does NOT equal realEventRoot

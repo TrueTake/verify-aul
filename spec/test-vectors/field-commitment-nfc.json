@@ -1,6 +1,5 @@
 {
   "field_path": "approver.email",
-  "field_value": "café@example.com",
   "salt": "VVVVVVVVVVVVVVVVVVVVVQ",
   "merkle_path": [],
   "root": "074cae1af8a6388d58688b8095d33899f901601fbf9a657ef63f9df70c686a3e",

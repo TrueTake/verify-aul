@@ -26,7 +26,6 @@ export interface MerkleSibling {
  */
 export interface Disclosure {
   field_path: string;
-  field_value: string;
   /** 16-byte salt, unpadded base64url (22 chars). */
   salt: string;
   merkle_path: MerkleSibling[];

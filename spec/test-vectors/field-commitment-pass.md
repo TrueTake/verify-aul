@@ -10,7 +10,7 @@ leaf hashing, and two-sibling Merkle walk — in isolation. This vector is
 ## What it verifies
 
 - `canonicalizeFieldValue('approver.email', ...)` applied to a mixed-case
-  candidate produces the same canonical bytes as `field_value`.
+  candidate produces the same canonical bytes as the committed value.
 - `computeLeafHash(...)` with the 16-byte salt `0x2a…2a` (16 repetitions)
   produces the leaf that walks to `root` under the given `merkle_path`.
 - The walk exercises **both** sibling directions (`left` then `right`).
@@ -19,7 +19,7 @@ leaf hashing, and two-sibling Merkle walk — in isolation. This vector is
 
 `Alice@Example.COM ` — mixed case plus a trailing space. After the v1
 rule (`NFC + trim + lowercase`) it canonicalizes to `alice@example.com`,
-which equals `field_value`.
+the value the commit side hashed into the frozen leaf.
 
 ## Regeneration
 
