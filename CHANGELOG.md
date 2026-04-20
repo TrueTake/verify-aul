@@ -10,9 +10,8 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
 
 **Field-disclosure support.** Adds a `verify-field` CLI subcommand and the
 field-commitment primitives that back it, along with spec §10 covering
-the normative on-wire format. Pre-release while we land the companion
-platform PR (bumps the dep and regenerates platform's gold file from
-this OSS implementation, closing the cross-impl byte-equality loop).
+the normative on-wire format. Pre-release while the companion commit-side
+cross-implementation byte-equality loop is closed downstream.
 
 ### Added
 
@@ -49,12 +48,13 @@ this OSS implementation, closing the cross-impl byte-equality loop).
   to `tier2-pass.json`'s `event_hash` — exercises the CLI end-to-end),
   `-nfc` (NFD → NFC invariant pin), `-fail` (tampered root). External
   verifier implementations MUST use all four.
-- **Platform-parity byte-equality fixture** at
+- **Cross-implementation byte-equality fixture** at
   `spec/test-vectors/platform-parity/field-commitment.json` — copied
-  from platform's `field-commitments.json`. `src/platform-parity.test.ts`
-  asserts this package's `computeLeafHash` reproduces platform's
-  `expected_leaf_hashes` byte-for-byte. Drift caught in this repo's CI,
-  not in a follow-up PR.
+  from a parallel commit-side implementation (not distributed with this
+  package). `src/platform-parity.test.ts` asserts this package's
+  `computeLeafHash` reproduces the committed `expected_leaf_hashes`
+  byte-for-byte, catching drift between the two implementations in this
+  repo's CI.
 - **Split fixtures generator** — new `npm run fixtures:generate:offline`
   emits only the deterministic field-commitment vectors (no network, no
   fresh CA keys). CI gates byte-equality on the offline outputs via
@@ -66,21 +66,19 @@ this OSS implementation, closing the cross-impl byte-equality loop).
 ### Changed
 
 - `package.json.version` → `1.1.0-alpha.0`. Minor bump: new CLI
-  subcommand, new public capability. Alpha: landing in platform behind a
-  dep-bump PR before promoting to stable.
+  subcommand, new public capability. Alpha because downstream
+  integration is still in progress.
 - `spec/README.md` — indexes both schemas and documents the offline
   fixtures phase.
 - CLI `--help` lists the `verify-field` subcommand and its flags.
 
 ### Notes
 
-- **Platform-side follow-up PR (not in this release).** Bumps the
-  `@truetake/verify-aul` dep to `1.1.0-alpha.0`, regenerates platform's
-  `field-commitments.json` gold file against this implementation, and
-  reruns platform's byte-equality fixture test. That closes the
-  two-implementation parity loop. The platform-parity fixture in this
-  release is the short-term guard against OSS-side drift before that
-  downstream PR lands.
+- **Downstream integration (not in this release).** The commit-side
+  implementation will bump its dep to `1.1.0-alpha.0` and regenerate its
+  gold-file fixtures against this implementation, closing the
+  two-implementation parity loop. The parity fixture in this release is
+  the short-term guard against drift before that integration lands.
 - **Release cadence.** Adding a new supported `field_path` to spec §10.4
   requires a minor-version bump here — verifiers older than the bump
   MUST reject the new path. A future release MAY adopt a declarative

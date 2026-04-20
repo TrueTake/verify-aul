@@ -9,7 +9,7 @@ This directory holds the normative artifacts for `@truetake/verify-aul`.
 | [`schema/disclosure.v1.json`](./schema/disclosure.v1.json) | JSON Schema — source of truth for structural validation of field-disclosure bundles (§10). |
 | [`fixtures-trust-anchors/`](./fixtures-trust-anchors/) | **Fixtures-only** CA fingerprints and PEMs. Never ship with a production verifier. |
 | [`test-vectors/`](./test-vectors/) | Reference test vectors — bundle vectors plus field-disclosure vectors (§10.9). Each JSON vector has a co-located `.md` sibling describing intent. |
-| [`test-vectors/platform-parity/`](./test-vectors/platform-parity/) | Frozen cross-implementation byte-equality fixture copied from the TrueTake platform repo (§10.9). |
+| [`test-vectors/platform-parity/`](./test-vectors/platform-parity/) | Frozen cross-implementation byte-equality fixture copied from TrueTake's internal commit-side implementation (§10.9). |
 | [`generate-fixtures.ts`](./generate-fixtures.ts) | Script that regenerates the fixtures CA, signs TimeStampTokens, and produces the crypto-bearing vectors. The offline-only phase is suitable for CI byte-equality gates. |
 
 ## Fixtures vs. production anchors

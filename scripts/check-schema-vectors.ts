@@ -10,9 +10,9 @@
  *
  * `readdirSync(VECTORS_DIR)` is deliberately non-recursive. The
  * `platform-parity/` subdirectory uses a different, non-normative fixture
- * shape copied from the platform repo, and its content is validated
- * programmatically by `src/platform-parity.test.ts` rather than by this
- * schema check — keeping it out of this walk is load-bearing.
+ * shape and is validated programmatically by `src/platform-parity.test.ts`
+ * rather than by this schema check — keeping it out of this walk is
+ * load-bearing.
  *
  * This runs in CI alongside the verifier-level `spec-vectors.test.ts` so
  * that schema drift is caught separately from verdict drift.

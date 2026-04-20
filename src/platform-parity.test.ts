@@ -2,15 +2,11 @@
  * Cross-implementation byte-equality test.
  *
  * Loads `spec/test-vectors/platform-parity/field-commitment.json` — a frozen
- * fixture copied from the TrueTake platform repo — and asserts that this
- * package's `computeLeafHash` reproduces each `expected_leaf_hashes` entry
- * byte-for-byte, and that `verifyFieldProof` accepts each recorded proof
- * against the declared `expected_root`.
- *
- * The platform uses `node:crypto`; this package uses `@noble/hashes`. Byte
- * equality under identical inputs is the signal that the spec is
- * re-implementable in any language. See the sibling `.md` for source
- * provenance and refresh policy.
+ * fixture from a parallel commit-side implementation that uses `node:crypto`
+ * — and asserts that this package's `@noble/hashes`-based `computeLeafHash`
+ * reproduces each `expected_leaf_hashes` entry byte-for-byte, and that
+ * `verifyFieldProof` accepts each recorded proof against the declared
+ * `expected_root`. See the sibling `.md` for refresh policy.
  */
 
 import { describe, expect, it } from 'vitest';
