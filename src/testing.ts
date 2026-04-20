@@ -10,6 +10,16 @@
  * Third-party implementers reading the spec never see this on the main API
  * surface; it's reached only through the `./testing` subpath export declared
  * in `package.json.exports`.
+ *
+ * Field-commitment primitives (`canonicalizeFieldValue`, `computeLeafHash`,
+ * `verifyFieldProof`, `ENCODING_VERSION`, `DISCLOSABLE_FIELDS`) are re-exported
+ * here so cross-implementation parity fixtures — most notably the commit-side
+ * gold file at `server/services/ledger/__fixtures__/field-commitments.json` in
+ * the TrueTake platform repo — can be regenerated from this package's
+ * `@noble/hashes`-based implementation instead of the commit-side `node:crypto`
+ * one. Keeping the surface on `./testing` (not on `.`) preserves the "external
+ * verifiers implement from the spec, not from imports" stance for production
+ * consumers.
  */
 
 import type { VerificationBundle, VerificationResult, VerifyOptions } from './types.js';
@@ -31,3 +41,13 @@ export function verifyBundleForTesting(
 ): Promise<VerificationResult> {
   return _verifyBundleWithTestingOverrides(bundle, options);
 }
+
+export {
+  DISCLOSABLE_FIELDS,
+  ENCODING_VERSION,
+  FieldCommitmentError,
+  canonicalizeFieldValue,
+  computeLeafHash,
+  verifyFieldProof,
+} from './field-commitment.js';
+export type { DisclosableField, FieldCommitmentErrorCode } from './field-commitment.js';
