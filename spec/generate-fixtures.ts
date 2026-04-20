@@ -113,7 +113,7 @@ const TIER2_PASS_EVENT = {
   artifact_references: [],
 } as const;
 
-async function generateTier2Pass(fixturesInfo: { caSkiSha256Hex: string }): Promise<void> {
+async function generateTier2Pass(): Promise<void> {
   console.log('[tier2-pass] building event + Merkle root');
   const event = TIER2_PASS_EVENT;
   const eventHash = eventHashFor(event);
@@ -414,7 +414,7 @@ export const TRUST_ANCHOR_FINGERPRINTS_FIXTURES: Record<string, string> = {
 
   console.log('\n[vectors] regenerating crypto-bearing reference test vectors');
   await generateTier1Pass();
-  await generateTier2Pass({ caSkiSha256Hex: fixtures.caSkiSha256Hex });
+  await generateTier2Pass();
   await generatePartialMissingAnchor();
   await generateTrustAnchorMismatch({ fixtures });
 

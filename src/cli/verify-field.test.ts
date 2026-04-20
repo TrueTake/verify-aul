@@ -23,7 +23,7 @@ vi.mock('../core.js', () => ({
 
 import { verifyBundle } from '../core.js';
 import type { VerificationResult } from '../types.js';
-import { runVerifyFieldCommand } from './verify-field.js';
+import { buildReport, runVerifyFieldCommand } from './verify-field.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -53,6 +53,12 @@ function makePassFixtures(overrides: {
   disclosureEventHash?: string;
   fieldValue?: string;
   tamperRoot?: boolean;
+  /** Override bundle.event.metadata.event_root (for Binding B tests). */
+  bundleEventRoot?: string | null;
+  /** Drop bundle.event entirely to simulate a Tier 1 proof. */
+  omitBundleEvent?: boolean;
+  /** Drop bundle.event.metadata to simulate a malformed Tier 2 bundle. */
+  omitBundleMetadata?: boolean;
 } = {}): {
   bundle: Record<string, unknown>;
   disclosure: Record<string, unknown>;
@@ -69,7 +75,23 @@ function makePassFixtures(overrides: {
     ? leafHash.slice(0, -2) + (leafHash.slice(-2) === 'ff' ? '00' : 'ff')
     : leafHash;
 
-  const bundle = {
+  // Single-leaf tree: event_root === leaf_hash === disclosure.root.
+  const eventRoot = overrides.bundleEventRoot === undefined ? root : overrides.bundleEventRoot;
+
+  let bundleEvent: Record<string, unknown> | undefined = undefined;
+  if (!overrides.omitBundleEvent) {
+    if (overrides.omitBundleMetadata) {
+      bundleEvent = { placeholder: true };
+    } else {
+      bundleEvent = {
+        deal_id: 'deal-test',
+        event_type: 'APPROVE_DELIVERABLE',
+        metadata: eventRoot === null ? {} : { event_root: eventRoot, encoding_version: 'v1' },
+      };
+    }
+  }
+
+  const bundle: Record<string, unknown> = {
     bundle_schema_version: 1,
     status: 'confirmed',
     event_hash: overrides.bundleEventHash ?? eventHash,
@@ -77,6 +99,9 @@ function makePassFixtures(overrides: {
     anchors: [],
     partial_anchors_reason: [],
   };
+  if (bundleEvent !== undefined) {
+    bundle.event = bundleEvent;
+  }
   const disclosure = {
     field_path: 'approver.email',
     field_value: fieldValue,
@@ -146,6 +171,52 @@ async function writeFixtures(
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
+
+describe('buildReport pass invariant (spec §10.8 step 7 — direct unit test)', () => {
+  // These tests exercise the invariant guard inside buildReport directly,
+  // independently of the handler's earlier short-circuit. The guard is the
+  // load-bearing defence against a hypothetical future regression that
+  // loosens the earlier check (e.g., a --skip-bundle-check flag).
+  const BASE = {
+    disclosure: '/tmp/d.json',
+    bundle: '/tmp/b.json',
+    reason: null,
+    rpcEndpoint: null,
+  } as const;
+
+  it('verdict=pass with bundleVerdict=pass → passes through', () => {
+    const r = buildReport({ ...BASE, verdict: 'pass', bundleVerdict: 'pass' });
+    expect(r.verdict).toBe('pass');
+  });
+
+  it('verdict=pass with bundleVerdict=partial → coerced to error', () => {
+    const r = buildReport({ ...BASE, verdict: 'pass', bundleVerdict: 'partial' });
+    expect(r.verdict).toBe('error');
+    expect(r.bundle_verdict).toBe('partial');
+  });
+
+  it('verdict=pass with bundleVerdict=fail → coerced to error', () => {
+    const r = buildReport({ ...BASE, verdict: 'pass', bundleVerdict: 'fail' });
+    expect(r.verdict).toBe('error');
+  });
+
+  it('verdict=pass with bundleVerdict=null → coerced to error', () => {
+    const r = buildReport({ ...BASE, verdict: 'pass', bundleVerdict: null });
+    expect(r.verdict).toBe('error');
+  });
+
+  it('verdict=fail with bundleVerdict=pass → stays fail (walk failure path)', () => {
+    const r = buildReport({ ...BASE, verdict: 'fail', bundleVerdict: 'pass' });
+    expect(r.verdict).toBe('fail');
+  });
+
+  it('verdict=error always stays error', () => {
+    const passBundle = buildReport({ ...BASE, verdict: 'error', bundleVerdict: 'pass' });
+    const failBundle = buildReport({ ...BASE, verdict: 'error', bundleVerdict: 'fail' });
+    expect(passBundle.verdict).toBe('error');
+    expect(failBundle.verdict).toBe('error');
+  });
+});
 
 describe('verify-field CLI', () => {
   beforeEach(() => {
@@ -549,7 +620,188 @@ describe('verify-field CLI', () => {
     });
   });
 
-  describe('Binding check', () => {
+  describe('Binding check — event_root (spec §10.7 Binding B / adv-01 regression)', () => {
+    it('ATTACK: forged disclosure with attacker-chosen field_value + matching leaf+root is REJECTED', async () => {
+      // Adversarial scenario: attacker has a legitimate bundle (i.e. a bundle
+      // whose event_hash matches a real anchored event). Attacker fabricates
+      // a disclosure with fresh salt + their chosen field_value + merkle_path=[]
+      // + root=computeLeafHash(attackerValue, freshSalt). Without a Binding B
+      // check, verdict would be `pass` with the attacker's chosen value.
+      //
+      // The bundle's real event.metadata.event_root is the committed tree's
+      // root (from the real data). The attacker's fabricated root does NOT
+      // equal it. Binding B catches the attack.
+      vi.mocked(verifyBundle).mockResolvedValue(PASS_BUNDLE_RESULT);
+
+      const attackerSalt = new Uint8Array(16).fill(0xde);
+      const attackerSaltB64 = Buffer.from(attackerSalt).toString('base64url');
+      const attackerValue = 'attacker@evil.com';
+      const attackerLeaf = computeLeafHash('approver.email', attackerValue, attackerSalt);
+      // The real committed tree's root — what the legitimate bundle embeds.
+      const realEventRoot = '1'.repeat(64);
+
+      const bundle = {
+        bundle_schema_version: 1,
+        status: 'confirmed',
+        event_hash: 'a'.repeat(64),
+        event: {
+          deal_id: 'real-deal',
+          event_type: 'APPROVE_DELIVERABLE',
+          metadata: { event_root: realEventRoot, encoding_version: 'v1' },
+        },
+        merkle_proof: { leaf_index: 0, siblings: [], root: '0'.repeat(64) },
+        anchors: [],
+        partial_anchors_reason: [],
+      };
+      const forgedDisclosure = {
+        field_path: 'approver.email',
+        field_value: attackerValue,
+        salt: attackerSaltB64,
+        merkle_path: [],
+        root: attackerLeaf, // attacker-chosen; does NOT equal realEventRoot
+        event_hash: 'a'.repeat(64), // stolen from the real bundle
+      };
+      const { bundlePath, disclosurePath, dir } = await writeFixtures(bundle, forgedDisclosure);
+
+      const result = await captureRun(() =>
+        runVerifyFieldCommand({
+          bundlePath,
+          disclosurePath,
+          candidate: attackerValue,
+          candidateFile: null,
+          json: true,
+          verbose: false,
+        }),
+      );
+
+      // MUST be error, NOT pass. Verdict `fail` or `pass` here = critical regression.
+      expect(result.exitCode).toBe(1);
+      const report = JSON.parse(result.stdout);
+      expect(report.verdict).toBe('error');
+      expect(report.verdict).not.toBe('pass');
+      expect(report.reason).toContain('event_root mismatch');
+      await rm(dir, { recursive: true });
+    });
+
+    it('Tier 1 bundle (no event field) → verdict error', async () => {
+      vi.mocked(verifyBundle).mockResolvedValue(PASS_BUNDLE_RESULT);
+      const { bundle, disclosure, candidate } = makePassFixtures({ omitBundleEvent: true });
+      const { bundlePath, disclosurePath, dir } = await writeFixtures(bundle, disclosure);
+
+      const result = await captureRun(() =>
+        runVerifyFieldCommand({
+          bundlePath,
+          disclosurePath,
+          candidate,
+          candidateFile: null,
+          json: true,
+          verbose: false,
+        }),
+      );
+
+      expect(result.exitCode).toBe(1);
+      const report = JSON.parse(result.stdout);
+      expect(report.verdict).toBe('error');
+      expect(report.reason).toMatch(/bundle\.event missing/);
+      await rm(dir, { recursive: true });
+    });
+
+    it('bundle.event.metadata missing → verdict error', async () => {
+      vi.mocked(verifyBundle).mockResolvedValue(PASS_BUNDLE_RESULT);
+      const { bundle, disclosure, candidate } = makePassFixtures({ omitBundleMetadata: true });
+      const { bundlePath, disclosurePath, dir } = await writeFixtures(bundle, disclosure);
+
+      const result = await captureRun(() =>
+        runVerifyFieldCommand({
+          bundlePath,
+          disclosurePath,
+          candidate,
+          candidateFile: null,
+          json: true,
+          verbose: false,
+        }),
+      );
+
+      expect(result.exitCode).toBe(1);
+      const report = JSON.parse(result.stdout);
+      expect(report.verdict).toBe('error');
+      expect(report.reason).toMatch(/metadata/);
+      await rm(dir, { recursive: true });
+    });
+
+    it('bundle.event.metadata.event_root missing → verdict error', async () => {
+      vi.mocked(verifyBundle).mockResolvedValue(PASS_BUNDLE_RESULT);
+      const { bundle, disclosure, candidate } = makePassFixtures({ bundleEventRoot: null });
+      const { bundlePath, disclosurePath, dir } = await writeFixtures(bundle, disclosure);
+
+      const result = await captureRun(() =>
+        runVerifyFieldCommand({
+          bundlePath,
+          disclosurePath,
+          candidate,
+          candidateFile: null,
+          json: true,
+          verbose: false,
+        }),
+      );
+
+      expect(result.exitCode).toBe(1);
+      const report = JSON.parse(result.stdout);
+      expect(report.verdict).toBe('error');
+      expect(report.reason).toMatch(/event_root/);
+      await rm(dir, { recursive: true });
+    });
+
+    it('bundle.event.metadata.event_root is uppercase hex → verdict error (non-conforming)', async () => {
+      vi.mocked(verifyBundle).mockResolvedValue(PASS_BUNDLE_RESULT);
+      const { bundle, disclosure, candidate } = makePassFixtures({
+        bundleEventRoot: 'A'.repeat(64),
+      });
+      const { bundlePath, disclosurePath, dir } = await writeFixtures(bundle, disclosure);
+
+      const result = await captureRun(() =>
+        runVerifyFieldCommand({
+          bundlePath,
+          disclosurePath,
+          candidate,
+          candidateFile: null,
+          json: true,
+          verbose: false,
+        }),
+      );
+
+      expect(result.exitCode).toBe(1);
+      expect(JSON.parse(result.stdout).reason).toMatch(/event_root/);
+      await rm(dir, { recursive: true });
+    });
+
+    it('event_root present but differs from disclosure.root → verdict error', async () => {
+      vi.mocked(verifyBundle).mockResolvedValue(PASS_BUNDLE_RESULT);
+      const { bundle, disclosure, candidate } = makePassFixtures({
+        bundleEventRoot: 'f'.repeat(64), // different from disclosure.root
+      });
+      const { bundlePath, disclosurePath, dir } = await writeFixtures(bundle, disclosure);
+
+      const result = await captureRun(() =>
+        runVerifyFieldCommand({
+          bundlePath,
+          disclosurePath,
+          candidate,
+          candidateFile: null,
+          json: true,
+          verbose: false,
+        }),
+      );
+
+      expect(result.exitCode).toBe(1);
+      const report = JSON.parse(result.stdout);
+      expect(report.verdict).toBe('error');
+      expect(report.reason).toContain('event_root mismatch');
+      await rm(dir, { recursive: true });
+    });
+  });
+
+  describe('Binding check — event_hash', () => {
     it('event_hash mismatch → verdict error with both hashes in reason', async () => {
       vi.mocked(verifyBundle).mockResolvedValue(PASS_BUNDLE_RESULT);
       const bundleHash = 'a'.repeat(64);

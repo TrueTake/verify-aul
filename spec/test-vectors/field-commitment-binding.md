@@ -3,33 +3,44 @@
 **Expected verdict (full CLI):** `pass`.
 
 **Scope:** Exercises the full §10.8 verification algorithm —
-`verifyBundle` → `checkBinding` → `canonicalizeCandidate` →
-`computeLeafHash` → `verifyMerkleProof` — and specifically pins the
-binding rule between a field-disclosure bundle and its referenced
-verification bundle.
+`verifyBundle` → `checkBindingEventHash` → `checkBindingRoot` →
+`canonicalizeCandidate` → `computeLeafHash` → `verifyMerkleProof` —
+and specifically pins both §10.7 bindings between a field-disclosure
+bundle and its referenced verification bundle.
 
-## Binding to `tier2-pass.json`
+## Two bindings to `tier2-pass`
 
-`event_hash` in this disclosure equals the `event_hash` in
-[`tier2-pass.json`](./tier2-pass.json). The binding is derived
-deterministically from the canonical `TIER2_PASS_EVENT` object in
-`spec/generate-fixtures.ts`, so any change to that event's shape
+**Binding A (`event_hash`).** `disclosure.event_hash` equals the
+`event_hash` in [`tier2-pass.json`](./tier2-pass.json). The binding is
+derived deterministically from the canonical `TIER2_PASS_EVENT` object
+in `spec/generate-fixtures.ts`, so any change to that event's shape
 automatically propagates here.
 
+**Binding B (`event_root`).** A Tier 2 bundle that supports field
+disclosure MUST carry `event.metadata.event_root` (§10.7); the verifier
+asserts `disclosure.root === bundle.event.metadata.event_root`. Without
+this check, a fabricated disclosure with an attacker-chosen `root` and
+`field_value` produces a self-consistent Merkle walk — a critical
+forgery.
+
+Because this repo's `tier2-pass.json` is regenerated via network (TSA +
+Ed25519) and does not include `event.metadata.event_root`, the
+end-to-end test in `spec-vectors.field-commitment.test.ts` constructs a
+synthetic Tier 2 bundle with matching `event_hash` and `event_root` at
+test time rather than using the crypto-bearing fixture directly. The
+binding disclosure vector is the source of truth for both values.
+
 The field-commitment tree is **separate** from the bundle's
-`merkle_proof` tree. There is no coupling between the two roots — a
-real commit side would anchor the bundle's Merkle root to Solana and
-persist the field-commitment root as a per-event database column
-(`ledger_events.field_commitment_root` in platform). This vector uses a
-single-leaf field-commitment tree, so the walk is a no-op (`root ===
-leaf_hash`, `merkle_path: []`).
+`merkle_proof` tree. This vector uses a single-leaf field-commitment
+tree, so the walk is a no-op (`root === leaf_hash`, `merkle_path: []`).
 
 ## Using this vector in tests
 
-Run `runVerifyFieldCommand(...)` against this disclosure + the
-`tier2-pass.json` bundle, with `verifyBundle` mocked to return a `pass`
-verdict (so the test does not require network access). See
-`src/spec-vectors.field-commitment.test.ts`.
+Run `runVerifyFieldCommand(...)` against this disclosure + a Tier 2
+bundle whose `event_hash` equals `disclosure.event_hash` and whose
+`event.metadata.event_root` equals `disclosure.root`. Mock
+`verifyBundle` to return a `pass` verdict so the test does not require
+network access. See `src/spec-vectors.field-commitment.test.ts`.
 
 ## Candidate that should verify against this disclosure
 

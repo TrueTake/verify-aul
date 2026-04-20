@@ -21,8 +21,13 @@ this OSS implementation, closing the cross-impl byte-equality loop).
   `--disclosure <path>`, `--bundle <path>`, `--candidate <VALUE>`, and
   `--candidate-file <path>` (mutually exclusive with `--candidate`;
   prefer it for sensitive values to avoid argv leakage). Mandatory
-  `verifyBundle` step and strict 64-char lowercase hex `event_hash`
-  binding — no escape hatch.
+  `verifyBundle` step, strict 64-char lowercase hex `event_hash`
+  binding, and `event_root` binding
+  (`disclosure.root === bundle.event.metadata.event_root`) — no escape
+  hatch. The two bindings together anchor the disclosure's Merkle root
+  to the signed + Solana-anchored event; without Binding B, a forged
+  disclosure with an attacker-chosen `field_value` would walk
+  self-consistently.
 - **Field-commitment primitives** — `src/field-commitment.ts` exposes
   `canonicalizeFieldValue`, `computeLeafHash`, and `verifyFieldProof`,
   used by the CLI handler. **CLI-internal** — not re-exported from

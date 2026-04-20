@@ -176,15 +176,9 @@ function validateDisclosureShape(
   if (!BASE64URL_SALT_RE.test(salt)) {
     return { error: `disclosure.salt must be 22-char unpadded base64url (16 raw bytes)` };
   }
-  let saltBytes: Uint8Array;
-  try {
-    saltBytes = base64UrlToBytes(salt);
-  } catch {
-    return { error: `disclosure.salt is not valid base64url` };
-  }
-  if (saltBytes.length !== 16) {
-    return { error: `disclosure.salt must decode to 16 bytes; got ${saltBytes.length}` };
-  }
+  // salt already matches BASE64URL_SALT_RE (22 chars, 16 raw bytes);
+  // Buffer.from('<22 base64url chars>', 'base64url') never throws, and the
+  // decoded length is always 16. No further runtime check needed.
   const siblings: MerkleSibling[] = [];
   for (let i = 0; i < raw.merkle_path.length; i += 1) {
     const s = raw.merkle_path[i];
@@ -217,7 +211,16 @@ function validateDisclosureShape(
 // Verdict formatter — constructs the report object; enforces pass invariant.
 // ---------------------------------------------------------------------------
 
-function buildReport(params: {
+/**
+ * Construct a verdict report, enforcing the §10.8 step-7 pass invariant:
+ * a verifier MUST NOT emit `pass` unless the bundle verdict is `pass`.
+ *
+ * Exported so tests can exercise the invariant directly (without relying on
+ * the earlier short-circuit in `runVerifyFieldCommand` that catches the same
+ * condition). This is the load-bearing guard against a hypothetical future
+ * regression that loosens the earlier check (e.g., `--skip-bundle-check`).
+ */
+export function buildReport(params: {
   disclosure: string;
   bundle: string;
   verdict: FieldVerdict;
@@ -285,14 +288,18 @@ export async function runVerifyFieldCommand(opts: VerifyFieldCommandOptions): Pr
   // Input option arbitration.
   if (opts.candidate !== null && opts.candidateFile !== null) {
     process.stderr.write(
-      `Error: --candidate and --candidate-file are mutually exclusive\n`,
+      `Error: --candidate and --candidate-file are mutually exclusive. Use one.\n`,
     );
     process.exit(2);
   }
   if (opts.candidate === null && opts.candidateFile === null) {
     process.stderr.write(
-      `Error: one of --candidate or --candidate-file is required\n`,
+      `Error: one of --candidate <VALUE> or --candidate-file <path> is required\n`,
     );
+    process.exit(2);
+  }
+  if (opts.candidateFile !== null && opts.candidateFile === '') {
+    process.stderr.write(`Error: --candidate-file requires a non-empty path\n`);
     process.exit(2);
   }
 
@@ -437,7 +444,71 @@ export async function runVerifyFieldCommand(opts: VerifyFieldCommandOptions): Pr
     process.exit(exitFor(report.verdict));
   }
 
-  // Steps 3-5: canonicalizeCandidate, computeLeafHash, verifyMerkleProof.
+  // Step 3: checkBindingRoot (spec §10.7 Binding B).
+  //
+  // disclosure.root MUST equal bundle.event.metadata.event_root. Without this
+  // check, an attacker with any legitimate bundle can forge a disclosure for
+  // an attacker-chosen field_value: fresh salt + merkle_path=[] +
+  // root=computeLeafHash(attackerValue, salt) produces a self-consistent walk.
+  // The event_root binding closes the gap because event_root lives inside
+  // bundle.event, which is transitively committed by event_hash (verified in
+  // step 1 via verifyBundle's canonical_recompute check).
+  //
+  // Tier 1 proofs (§3.1) omit `event` and therefore cannot support
+  // field-disclosure verification — we reject them explicitly here.
+  if (bundleRaw.event === undefined || bundleRaw.event === null) {
+    const report = buildReport({
+      disclosure: opts.disclosurePath,
+      bundle: opts.bundlePath,
+      verdict: 'error',
+      bundleVerdict: bundleResult.verdict,
+      reason: 'bundle.event missing — field-disclosure verification requires a Tier 2 bundle',
+      rpcEndpoint: bundleResult.rpc_endpoint_used,
+    });
+    emitReport(report, opts.json);
+    process.exit(exitFor(report.verdict));
+  }
+  const bundleEvent = bundleRaw.event as Record<string, unknown>;
+  const bundleMetadata = bundleEvent.metadata;
+  if (bundleMetadata === null || typeof bundleMetadata !== 'object' || Array.isArray(bundleMetadata)) {
+    const report = buildReport({
+      disclosure: opts.disclosurePath,
+      bundle: opts.bundlePath,
+      verdict: 'error',
+      bundleVerdict: bundleResult.verdict,
+      reason: 'bundle.event.metadata missing or not an object',
+      rpcEndpoint: bundleResult.rpc_endpoint_used,
+    });
+    emitReport(report, opts.json);
+    process.exit(exitFor(report.verdict));
+  }
+  const bundleEventRoot = (bundleMetadata as Record<string, unknown>).event_root;
+  if (typeof bundleEventRoot !== 'string' || !HEX64_RE.test(bundleEventRoot)) {
+    const report = buildReport({
+      disclosure: opts.disclosurePath,
+      bundle: opts.bundlePath,
+      verdict: 'error',
+      bundleVerdict: bundleResult.verdict,
+      reason: 'bundle.event.metadata.event_root missing or not 64-char lowercase hex',
+      rpcEndpoint: bundleResult.rpc_endpoint_used,
+    });
+    emitReport(report, opts.json);
+    process.exit(exitFor(report.verdict));
+  }
+  if (disclosure.root !== bundleEventRoot) {
+    const report = buildReport({
+      disclosure: opts.disclosurePath,
+      bundle: opts.bundlePath,
+      verdict: 'error',
+      bundleVerdict: bundleResult.verdict,
+      reason: `event_root mismatch: disclosure.root=${disclosure.root} bundle.event.metadata.event_root=${bundleEventRoot}`,
+      rpcEndpoint: bundleResult.rpc_endpoint_used,
+    });
+    emitReport(report, opts.json);
+    process.exit(exitFor(report.verdict));
+  }
+
+  // Steps 4-6: canonicalizeCandidate, computeLeafHash, verifyMerkleProof.
   //
   // The primitive throws on unknown field_path / encoding_version. Shape
   // validation above already rejects unknown paths, but we still wrap for

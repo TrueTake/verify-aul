@@ -8,9 +8,9 @@
   "additionalProperties": false,
   "properties": {
     "field_path": {
-      "description": "Dot-notation path of the disclosed field. MUST appear in the spec §10.4 canonicalization table.",
+      "description": "Dot-notation path of the disclosed field (e.g., `approver.email`). The schema validates shape only; the allowed value set is normative in spec §10.4 and enforced by the verifier. Adding a new supported field_path in §10.4 is a minor-version change to the spec that does NOT require bumping disclosure.v1.json to v2 — kept here so frozen vectors remain structurally valid across spec minor revisions.",
       "type": "string",
-      "enum": ["approver.email"]
+      "minLength": 1
     },
     "field_value": {
       "description": "Canonicalized field value (per §10.4 rule for field_path). UTF-8 string.",

@@ -261,7 +261,11 @@ Examples:
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
 
-  if (args.help && !args.subcommand) {
+  // --help prints USAGE and exits 0, regardless of subcommand. This is the
+  // agent-readiness contract: `verify-aul verify-field --help` MUST NOT be
+  // treated as a usage error (missing --disclosure / --bundle), because the
+  // caller hasn't yet learned what those flags are.
+  if (args.help) {
     process.stdout.write(USAGE + '\n');
     process.exit(0);
   }
@@ -274,7 +278,9 @@ async function main(): Promise<void> {
 
   // Subcommand required
   if (!args.subcommand) {
-    process.stderr.write(`Error: subcommand required (bundle or proof)\n\n${USAGE}\n`);
+    process.stderr.write(
+      `Error: subcommand required (bundle, proof, or verify-field)\n\n${USAGE}\n`,
+    );
     process.exit(2);
   }
 

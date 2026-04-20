@@ -70,73 +70,126 @@ async function captureRun(fn: () => Promise<void>): Promise<CaptureResult> {
   return { stdout: stdoutOutput, stderr: stderrOutput, exitCode: capturedExitCode };
 }
 
+/** Build a synthetic Tier 2 bundle bound to the binding vector. The real
+ *  `tier2-pass.json` has no `event.metadata.event_root`, so Binding B (§10.7)
+ *  rejects it outright; we construct a Tier 2 bundle with matching
+ *  `event_hash` and `event.metadata.event_root` for these end-to-end tests. */
+function buildBindingBundle(disclosure: {
+  event_hash: string;
+  root: string;
+}): VerificationBundle {
+  return {
+    bundle_schema_version: 1,
+    status: 'confirmed',
+    event_hash: disclosure.event_hash,
+    event: {
+      deal_id: 'binding-vector-deal',
+      event_type: 'APPROVE_DELIVERABLE',
+      metadata: { event_root: disclosure.root, encoding_version: 'v1' },
+    },
+    server_signature: 'a'.repeat(128),
+    signing_key_id: 'AAAAAAAAAAAAAAAA',
+    signing_keys: [
+      { fingerprint: 'AAAAAAAAAAAAAAAA', public_key_base64url: 'A'.repeat(43), status: 'active' },
+    ],
+    merkle_proof: { leaf_index: 0, siblings: [], root: '0'.repeat(64) },
+    anchors: [],
+    partial_anchors_reason: [],
+  };
+}
+
 describe('field-commitment-binding spec vector — end-to-end CLI', () => {
-  it('disclosure + bundle bind on event_hash, candidate verifies → verdict pass', async () => {
+  it('disclosure + bundle bind on event_hash AND event_root, candidate verifies → verdict pass', async () => {
     vi.mocked(verifyBundle).mockResolvedValue(PASS_BUNDLE_RESULT);
 
-    // Load the binding disclosure vector.
     const disclosurePath = resolve(VECTORS_DIR, 'field-commitment-binding.json');
     const disclosure = JSON.parse(await readFile(disclosurePath, 'utf-8')) as {
       event_hash: string;
+      root: string;
     };
 
-    // Load the tier2-pass bundle (its event_hash matches the binding vector).
-    const bundlePath = resolve(VECTORS_DIR, 'tier2-pass.json');
-    const bundle = JSON.parse(await readFile(bundlePath, 'utf-8')) as VerificationBundle;
-    expect(bundle.event_hash).toBe(disclosure.event_hash);
+    // tier2-pass.json pins the binding vector's event_hash (generator
+    // hashes TIER2_PASS_EVENT). Confirm the tie so the fixture stays aligned.
+    const tier2 = JSON.parse(
+      await readFile(resolve(VECTORS_DIR, 'tier2-pass.json'), 'utf-8'),
+    ) as VerificationBundle;
+    expect(tier2.event_hash).toBe(disclosure.event_hash);
 
-    const result = await captureRun(() =>
-      runVerifyFieldCommand({
-        disclosurePath,
-        bundlePath,
-        candidate: 'alice@example.com',
-        candidateFile: null,
-        json: true,
-        verbose: false,
-      }),
-    );
+    // Construct a Tier 2 bundle bound to the disclosure on both bindings.
+    const bundle = buildBindingBundle(disclosure);
+    const dir = await mkdtemp(join(tmpdir(), 'verify-aul-fc-binding-'));
+    const bundlePath = join(dir, 'bundle.json');
+    await writeFile(bundlePath, JSON.stringify(bundle), 'utf-8');
 
-    expect(result.exitCode).toBe(0);
-    const report = JSON.parse(result.stdout);
-    expect(report.verdict).toBe('pass');
-    expect(report.bundle_verdict).toBe('pass');
-    expect(vi.mocked(verifyBundle)).toHaveBeenCalled();
+    try {
+      const result = await captureRun(() =>
+        runVerifyFieldCommand({
+          disclosurePath,
+          bundlePath,
+          candidate: 'alice@example.com',
+          candidateFile: null,
+          json: true,
+          verbose: false,
+        }),
+      );
+
+      expect(result.exitCode).toBe(0);
+      const report = JSON.parse(result.stdout);
+      expect(report.verdict).toBe('pass');
+      expect(report.bundle_verdict).toBe('pass');
+      expect(vi.mocked(verifyBundle)).toHaveBeenCalled();
+    } finally {
+      await rm(dir, { recursive: true });
+    }
   });
 
   it('candidate that does not canonicalize to field_value → verdict fail', async () => {
     vi.mocked(verifyBundle).mockResolvedValue(PASS_BUNDLE_RESULT);
 
     const disclosurePath = resolve(VECTORS_DIR, 'field-commitment-binding.json');
-    const bundlePath = resolve(VECTORS_DIR, 'tier2-pass.json');
+    const disclosure = JSON.parse(await readFile(disclosurePath, 'utf-8')) as {
+      event_hash: string;
+      root: string;
+    };
+    const bundle = buildBindingBundle(disclosure);
+    const dir = await mkdtemp(join(tmpdir(), 'verify-aul-fc-binding-'));
+    const bundlePath = join(dir, 'bundle.json');
+    await writeFile(bundlePath, JSON.stringify(bundle), 'utf-8');
 
-    const result = await captureRun(() =>
-      runVerifyFieldCommand({
-        disclosurePath,
-        bundlePath,
-        candidate: 'wrong@example.com',
-        candidateFile: null,
-        json: true,
-        verbose: false,
-      }),
-    );
+    try {
+      const result = await captureRun(() =>
+        runVerifyFieldCommand({
+          disclosurePath,
+          bundlePath,
+          candidate: 'wrong@example.com',
+          candidateFile: null,
+          json: true,
+          verbose: false,
+        }),
+      );
 
-    expect(result.exitCode).toBe(1);
-    expect(JSON.parse(result.stdout).verdict).toBe('fail');
+      expect(result.exitCode).toBe(1);
+      expect(JSON.parse(result.stdout).verdict).toBe('fail');
+    } finally {
+      await rm(dir, { recursive: true });
+    }
   });
 
   it('bundle whose event_hash differs from disclosure → verdict error', async () => {
     vi.mocked(verifyBundle).mockResolvedValue(PASS_BUNDLE_RESULT);
 
     const disclosurePath = resolve(VECTORS_DIR, 'field-commitment-binding.json');
-
-    // Craft a bundle that passes shape checks but has a different event_hash.
-    const tier2Raw = await readFile(resolve(VECTORS_DIR, 'tier2-pass.json'), 'utf-8');
-    const tier2 = JSON.parse(tier2Raw) as VerificationBundle;
-    tier2.event_hash = 'f'.repeat(64);
+    const disclosure = JSON.parse(await readFile(disclosurePath, 'utf-8')) as {
+      event_hash: string;
+      root: string;
+    };
+    // Bundle event_root matches but event_hash is wrong — Binding A fires first.
+    const bundle = buildBindingBundle(disclosure);
+    bundle.event_hash = 'f'.repeat(64);
 
     const dir = await mkdtemp(join(tmpdir(), 'verify-aul-fc-binding-'));
     const bundlePath = join(dir, 'bundle.json');
-    await writeFile(bundlePath, JSON.stringify(tier2), 'utf-8');
+    await writeFile(bundlePath, JSON.stringify(bundle), 'utf-8');
 
     try {
       const result = await captureRun(() =>
