@@ -3,7 +3,7 @@
  *
  * Isomorphic: runs under Node >=20 and in modern browsers via WebCrypto.
  *
- * See spec/v1.0-rc.1.md for the bundle format, verdict truth table, and the
+ * See spec/v1.md for the bundle format, verdict truth table, and the
  * five verification checks.
  */
 

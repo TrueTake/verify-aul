@@ -6,18 +6,39 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
 
 ## [Unreleased]
 
+## [1.0.0] — 2026-04-20
+
+**First stable release.** The API, CLI flags, and bundle format (`bundle_schema_version: 1`) are now covered by semver — no breaking changes until a new major version.
+
 ### Added
+
+- `spec/v1.md` — stable specification, promoted from `spec/v1.0-rc.1.md`. The RC window closed without substantive external feedback; the normative text is unchanged from `rc.1`. Future breaking changes bump `bundle_schema_version` and land in a new `spec/v2.md` document.
+
+### Changed
+
+- `package.json.version` → `1.0.0`. Workflow's `dist-tag` logic routes this to `latest` automatically.
+- Spec filename renamed `spec/v1.0-rc.1.md` → `spec/v1.md`. All repo references (README, `src/index.ts` header, JSON Schema description, `spec/README.md`) updated in lockstep.
+- `spec/README.md` § Versioning rewritten: spec filename tracks `bundle_schema_version` (v1, v2, ...) rather than the RC cycle.
+
+### Migration
+
+No migration needed for consumers pinned at `0.1.0-alpha.4` — the API surface and bundle shape are identical. Bump the pin to `1.0.0` at your convenience. A `next` dist-tag release channel remains for future pre-release testing.
+
+## [0.1.0-alpha.4] — 2026-04-17
+
+**First OIDC-provenance alpha to land on npm.** [Sigstore transparency entry 1331751100](https://search.sigstore.dev/?logIndex=1331751100). Repository visibility flipped to public as a Unit 9 side-effect — `npm publish --provenance` rejects private-repo provenance. `github-pages` deploy branch policy updated to allow `v*` tag refs. Hosted UI live at https://truetake.github.io/verify-aul/.
+
+### Added (between alpha.0 and 1.0.0, rolled up)
 
 - **Unit 4b: all four crypto-bearing reference test vectors** (`tier1-pass`, `tier2-pass`, `partial-missing-anchor`, `fail-trust-anchor-mismatch`) now contain real cryptographic material and verify end-to-end against the production trust anchors. Pass / partial vectors carry real RFC 3161 TimeStampTokens minted against FreeTSA + DigiCert by `spec/generate-fixtures.ts`. The mismatch vector's token is signed by a local fixtures CA (new, under `spec/fixtures-trust-anchors/`) whose SHA-256(SKI) is pinned in `spec/fixtures-trust-anchors/fingerprints.ts` and asserted disjoint from production by `scripts/check-fingerprints-disjoint.ts`.
 - `spec/tools/fetch-tsa.ts` — RFC 3161 `TimeStampReq` issuer that POSTs to a TSA and unwraps the returned `TimeStampToken`. Pure pkijs; no external TSA client dep.
 - `spec/tools/fixtures-ca.ts` — local CA + TSA signing cert generator plus a `TimeStampToken` signer that wraps a `TSTInfo` in CMS `SignedData`. Used only for the mismatch vector; never ships in the npm tarball.
 - `npm run fixtures:generate` — orchestrates the above. Requires network (contacts FreeTSA + DigiCert). Regenerated vectors end up with fresh TSA `genTime` + fresh RSA signatures; their verdicts stay stable.
 
-### Changed
+### Changed (between alpha.0 and 1.0.0, rolled up)
 
 - `src/spec-vectors.test.ts` now asserts a concrete verdict on every vector (was: 4 deterministic + 4 placeholder-marker-only). Uses `verifyBundle` from the production API — no test-only override needed, because the pass / partial vectors are signed by real pinned CAs.
 - `scripts/check-schema-vectors.ts` no longer skips placeholder vectors; it validates all eight.
-- `spec/v1.0-rc.1.md` drops the "in-progress" Unit 4b note; the spec now honestly claims all eight vectors are real.
 - Removed the OIDC debug step from `release.yml`. It served its purpose during the alpha.0–alpha.3 troubleshooting; production publishes don't need it.
 
 ### Plan delta

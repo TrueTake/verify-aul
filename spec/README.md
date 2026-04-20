@@ -4,7 +4,7 @@ This directory holds the normative artifacts for `@truetake/verify-aul`.
 
 | Path | Purpose |
 |---|---|
-| [`v1.0-rc.1.md`](./v1.0-rc.1.md) | Normative prose. Defines the bundle format, verification algorithm, and verdict truth table. |
+| [`v1.md`](./v1.md) | Normative prose. Defines the bundle format, verification algorithm, and verdict truth table. |
 | [`schema/bundle.v1.json`](./schema/bundle.v1.json) | JSON Schema — source of truth for structural validation. |
 | [`fixtures-trust-anchors/`](./fixtures-trust-anchors/) | **Fixtures-only** CA fingerprints and PEMs. Never ship with a production verifier. |
 | [`test-vectors/`](./test-vectors/) | Eight reference test vectors (four deterministic, four crypto-bearing). Each JSON vector has a co-located `.md` sibling describing intent. |
@@ -19,6 +19,6 @@ Test vectors are consumed by the verifier test suite via `verifyBundleForTesting
 
 ## Spec authoring conventions
 
-- **Versioning.** The spec document's filename tracks the RC cycle (`v1.0-rc.1.md`, `v1.0-rc.2.md`, ...). When stable, rename to `v1.md`. The JSON Schema's filename tracks `bundle_schema_version` in the bundle itself, independent of the spec doc version (`bundle.v1.json` → `bundle.v2.json` only on a breaking bundle change).
+- **Versioning.** The spec document's filename tracks `bundle_schema_version` (`v1.md`, `v2.md`, ...); a new major version is cut only when a breaking change to the bundle format or verification algorithm lands. Minor clarifications amend the current spec in place with a dated changelog entry. The JSON Schema's filename tracks the same number (`bundle.v1.json` → `bundle.v2.json` only on a breaking bundle change).
 - **Prose vs. schema normativity.** The JSON Schema is normative for structural validation; the prose is normative for semantics (what the fields mean, how to compute verdicts). In case of conflict, fix both — never let them drift.
 - **Test vectors are part of the spec.** A change to the verdict truth table, the algorithm order, or any field's semantics **MUST** include updated vectors with expected-verdict annotations in the `.md` sibling.

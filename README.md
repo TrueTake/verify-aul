@@ -48,7 +48,7 @@ The verifier trusts **only** the CA fingerprints pinned in `src/trust-anchors/fi
 
 ## Spec
 
-The bundle format is documented in [`spec/v1.0-rc.1.md`](./spec/v1.0-rc.1.md). JSON Schema: [`spec/schema/bundle.v1.json`](./spec/schema/bundle.v1.json). Eight reference test vectors live in [`spec/test-vectors/`](./spec/test-vectors/).
+The bundle format is documented in [`spec/v1.md`](./spec/v1.md). JSON Schema: [`spec/schema/bundle.v1.json`](./spec/schema/bundle.v1.json). Eight reference test vectors live in [`spec/test-vectors/`](./spec/test-vectors/).
 
 ## Reproducible build
 
