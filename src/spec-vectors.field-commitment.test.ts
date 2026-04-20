@@ -21,6 +21,7 @@ vi.mock('./core.js', () => ({
 import { verifyBundle } from './core.js';
 import type { VerificationBundle, VerificationResult } from './types.js';
 import { runVerifyFieldCommand } from './cli/verify-field.js';
+import { captureRun } from './cli/__test-utils__/capture-run.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const VECTORS_DIR = resolve(__dirname, '..', 'spec', 'test-vectors');
@@ -31,44 +32,6 @@ const PASS_BUNDLE_RESULT: VerificationResult = {
   checks: [{ check: 'bundle_schema_version', status: 'pass' }],
 };
 
-interface CaptureResult {
-  stdout: string;
-  stderr: string;
-  exitCode: number;
-}
-
-async function captureRun(fn: () => Promise<void>): Promise<CaptureResult> {
-  let stdoutOutput = '';
-  let stderrOutput = '';
-  let capturedExitCode = 0;
-  vi.spyOn(process.stdout, 'write').mockImplementation((chunk: unknown) => {
-    stdoutOutput += String(chunk);
-    return true;
-  });
-  vi.spyOn(process.stderr, 'write').mockImplementation((chunk: unknown) => {
-    stderrOutput += String(chunk);
-    return true;
-  });
-  vi.spyOn(process, 'exit').mockImplementation((code?: number) => {
-    capturedExitCode = code ?? 0;
-    throw { __isExit: true, code: capturedExitCode };
-  });
-  try {
-    await fn();
-    capturedExitCode = 0;
-  } catch (err) {
-    if (err && typeof err === 'object' && '__isExit' in err) {
-      capturedExitCode = (err as { __isExit: true; code: number }).code;
-    } else {
-      throw err;
-    }
-  } finally {
-    vi.mocked(process.stdout.write).mockRestore();
-    vi.mocked(process.stderr.write).mockRestore();
-    vi.mocked(process.exit).mockRestore();
-  }
-  return { stdout: stdoutOutput, stderr: stderrOutput, exitCode: capturedExitCode };
-}
 
 /** Build a synthetic Tier 2 bundle bound to the binding vector. The real
  *  `tier2-pass.json` has no `event.metadata.event_root`, so Binding B (§10.7)

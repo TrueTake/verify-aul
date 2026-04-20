@@ -26,6 +26,7 @@ vi.mock('../core.js', () => ({
 
 import { verifyBundle } from '../core.js';
 import type { VerificationResult } from '../types.js';
+import { captureRun } from './__test-utils__/capture-run.js';
 import { runProofCommand } from './verify-proof.js';
 
 // ---------------------------------------------------------------------------
@@ -54,54 +55,6 @@ const TIER1_FAIL_RESULT: VerificationResult = {
     },
   ],
 };
-
-// ---------------------------------------------------------------------------
-// Process capture helper (same pattern as verify-bundle.test.ts)
-// ---------------------------------------------------------------------------
-
-interface RunResult {
-  stdout: string;
-  stderr: string;
-  exitCode: number;
-}
-
-async function captureRun(fn: () => Promise<void>): Promise<RunResult> {
-  let stdoutOutput = '';
-  let stderrOutput = '';
-  let capturedExitCode = 0;
-
-  vi.spyOn(process.stdout, 'write').mockImplementation((chunk: unknown) => {
-    stdoutOutput += String(chunk);
-    return true;
-  });
-
-  vi.spyOn(process.stderr, 'write').mockImplementation((chunk: unknown) => {
-    stderrOutput += String(chunk);
-    return true;
-  });
-
-  vi.spyOn(process, 'exit').mockImplementation((code?: number) => {
-    capturedExitCode = code ?? 0;
-    throw { __isExit: true, code: capturedExitCode };
-  });
-
-  try {
-    await fn();
-    capturedExitCode = 0;
-  } catch (err) {
-    if (err && typeof err === 'object' && '__isExit' in err) {
-      capturedExitCode = (err as { __isExit: true; code: number }).code;
-    } else {
-      throw err;
-    }
-  } finally {
-    vi.mocked(process.stdout.write).mockRestore();
-    vi.mocked(process.stderr.write).mockRestore();
-    vi.mocked(process.exit).mockRestore();
-  }
-
-  return { stdout: stdoutOutput, stderr: stderrOutput, exitCode: capturedExitCode };
-}
 
 // ---------------------------------------------------------------------------
 // Tests

@@ -4,7 +4,7 @@
 the TrueTake platform repository.
 
 **Source commit:** `9f23844d` — *feat(aul): single-field Merkle disclosure
-PoC (TRU-657) (#510)*. Platform repo `HEAD` at copy time:
+PoC* (platform PR #510). Platform repo `HEAD` at copy time:
 `767d44824f51997748f189e3765fd63d71088247`.
 
 **Copied:** 2026-04-20.

@@ -14,6 +14,7 @@ import canonicalize from 'canonicalize';
 import {
   DISCLOSABLE_FIELDS,
   ENCODING_VERSION,
+  FieldCommitmentError,
   canonicalizeFieldValue,
   computeLeafHash,
   verifyFieldProof,
@@ -44,27 +45,29 @@ describe('canonicalizeFieldValue', () => {
     );
   });
 
-  it('throws with E_UNKNOWN_FIELD_PATH on unknown field name, no value leakage', () => {
+  it('throws FieldCommitmentError E_UNKNOWN_FIELD_PATH on unknown field, no value leakage', () => {
     const SECRET = 'SECRET_CANDIDATE_VALUE';
     try {
       canonicalizeFieldValue('deal.amount', SECRET);
       expect.unreachable('expected throw');
     } catch (err) {
+      expect(err).toBeInstanceOf(FieldCommitmentError);
+      expect((err as FieldCommitmentError).code).toBe('E_UNKNOWN_FIELD_PATH');
       expect((err as Error).message).toMatch(/unknown field_name for encoding v1: deal\.amount/);
       expect((err as Error).message).not.toContain(SECRET);
-      expect((err as Error & { code?: string }).code).toBe('E_UNKNOWN_FIELD_PATH');
     }
   });
 
-  it('throws with E_UNKNOWN_ENCODING_VERSION on unknown version, no value leakage', () => {
+  it('throws FieldCommitmentError E_UNKNOWN_ENCODING_VERSION on unknown version, no value leakage', () => {
     const SECRET = 'SECRET_CANDIDATE_VALUE';
     try {
       canonicalizeFieldValue('approver.email', SECRET, 'v99');
       expect.unreachable('expected throw');
     } catch (err) {
+      expect(err).toBeInstanceOf(FieldCommitmentError);
+      expect((err as FieldCommitmentError).code).toBe('E_UNKNOWN_ENCODING_VERSION');
       expect((err as Error).message).toMatch(/unknown encoding_version: v99/);
       expect((err as Error).message).not.toContain(SECRET);
-      expect((err as Error & { code?: string }).code).toBe('E_UNKNOWN_ENCODING_VERSION');
     }
   });
 });

@@ -68,7 +68,8 @@
     },
     "exclude": [
       "src/**/*.test.ts",
-      "src/cli/**/fixtures/**"
+      "src/cli/**/fixtures/**",
+      "src/cli/__test-utils__/**"
     ],
     "project": "./tsconfig.json"
   },

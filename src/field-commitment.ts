@@ -1,25 +1,13 @@
 /**
- * AUL field-commitment primitives — verifier side.
+ * AUL field-commitment primitives (spec §10). CLI-internal — not re-exported
+ * from `./index.ts` or `./testing.ts`. External verifiers implement from the
+ * spec + the disclosure test vectors. Byte-level agreement with the platform
+ * commit-side implementation is pinned by `src/platform-parity.test.ts`.
  *
- * Mirrors `server/services/ledger/field-commitment.service.ts` in the platform
- * repo. The two implementations are intentionally independent (no shared code,
- * no cross-imports); byte-level agreement is pinned by the frozen platform-
- * parity fixture under `spec/test-vectors/platform-parity/` plus the disclosure
- * vectors under `spec/test-vectors/field-commitment-*.json`.
- *
- * Algorithm (spec §10):
- *   leaf_input = UTF-8( rfc8785_canonicalize( {
- *                  "encoding_version": <version>,
- *                  "field_name":       <field_path>,
- *                  "value":            <canonicalized value per §10.4>
- *                } ) )
- *   leaf       = SHA-256( 0x00 || salt || leaf_input )
- *   node       = SHA-256( 0x01 || left || right )
- *
- * CLI-internal: these symbols are NOT re-exported from `./index.ts` or
- * `./testing.ts` in this release. External verifiers implement from spec §10
- * and the test vectors. Re-expose via `./testing` in a future release if an
- * external verifier asks for programmatic access.
+ *   leaf = SHA-256( 0x00 || salt || utf8( rfc8785( {
+ *            encoding_version, field_name, value: canonical
+ *          } ) ) )
+ *   node = SHA-256( 0x01 || left || right )
  */
 
 import { sha256 } from '@noble/hashes/sha2.js';
@@ -55,34 +43,43 @@ const NODE_PREFIX = new Uint8Array([0x01]);
  * the caller feeds it into the JCS-wrapped leaf input (see `computeLeafHash`).
  *
  * v1 rules:
- *   `approver.email`: NFC → trim ASCII whitespace → lowercase.
+ *   `approver.email`: NFC → trim whitespace (WHATWG) → lowercase.
  *
- * Throws with stable error codes on unknown encoding versions and unknown
+ * Throws a `FieldCommitmentError` on unknown encoding versions and unknown
  * field names. Error messages MUST NOT include the candidate value (PII
  * hygiene — mirrors platform's rule).
  */
+export type FieldCommitmentErrorCode =
+  | 'E_UNKNOWN_FIELD_PATH'
+  | 'E_UNKNOWN_ENCODING_VERSION';
+
+export class FieldCommitmentError extends Error {
+  readonly code: FieldCommitmentErrorCode;
+  constructor(message: string, code: FieldCommitmentErrorCode) {
+    super(message);
+    this.name = 'FieldCommitmentError';
+    this.code = code;
+  }
+}
+
 export function canonicalizeFieldValue(
   name: string,
   value: string,
   encodingVersion: string = ENCODING_VERSION,
 ): string {
-  switch (encodingVersion) {
-    case 'v1':
-      switch (name) {
-        case 'approver.email':
-          return value.normalize('NFC').trim().toLowerCase();
-        default: {
-          const err = new Error(`unknown field_name for encoding v1: ${name}`);
-          (err as Error & { code?: string }).code = 'E_UNKNOWN_FIELD_PATH';
-          throw err;
-        }
-      }
-    default: {
-      const err = new Error(`unknown encoding_version: ${encodingVersion}`);
-      (err as Error & { code?: string }).code = 'E_UNKNOWN_ENCODING_VERSION';
-      throw err;
-    }
+  if (encodingVersion !== 'v1') {
+    throw new FieldCommitmentError(
+      `unknown encoding_version: ${encodingVersion}`,
+      'E_UNKNOWN_ENCODING_VERSION',
+    );
   }
+  if (name === 'approver.email') {
+    return value.normalize('NFC').trim().toLowerCase();
+  }
+  throw new FieldCommitmentError(
+    `unknown field_name for encoding v1: ${name}`,
+    'E_UNKNOWN_FIELD_PATH',
+  );
 }
 
 // ---------------------------------------------------------------------------

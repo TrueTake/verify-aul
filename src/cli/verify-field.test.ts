@@ -16,6 +16,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { computeLeafHash } from '../field-commitment.js';
+import { captureRun } from './__test-utils__/capture-run.js';
 
 vi.mock('../core.js', () => ({
   verifyBundle: vi.fn(),
@@ -111,48 +112,6 @@ function makePassFixtures(overrides: {
     event_hash: overrides.disclosureEventHash ?? eventHash,
   };
   return { bundle, disclosure, candidate };
-}
-
-interface RunResult {
-  stdout: string;
-  stderr: string;
-  exitCode: number;
-}
-
-async function captureRun(fn: () => Promise<void>): Promise<RunResult> {
-  let stdoutOutput = '';
-  let stderrOutput = '';
-  let capturedExitCode = 0;
-
-  vi.spyOn(process.stdout, 'write').mockImplementation((chunk: unknown) => {
-    stdoutOutput += String(chunk);
-    return true;
-  });
-  vi.spyOn(process.stderr, 'write').mockImplementation((chunk: unknown) => {
-    stderrOutput += String(chunk);
-    return true;
-  });
-  vi.spyOn(process, 'exit').mockImplementation((code?: number) => {
-    capturedExitCode = code ?? 0;
-    throw { __isExit: true, code: capturedExitCode };
-  });
-
-  try {
-    await fn();
-    capturedExitCode = 0;
-  } catch (err) {
-    if (err && typeof err === 'object' && '__isExit' in err) {
-      capturedExitCode = (err as { __isExit: true; code: number }).code;
-    } else {
-      throw err;
-    }
-  } finally {
-    vi.mocked(process.stdout.write).mockRestore();
-    vi.mocked(process.stderr.write).mockRestore();
-    vi.mocked(process.exit).mockRestore();
-  }
-
-  return { stdout: stdoutOutput, stderr: stderrOutput, exitCode: capturedExitCode };
 }
 
 /** Write bundle + disclosure JSON to a fresh tmp dir, return paths. */
