@@ -19,9 +19,10 @@ automatically propagates here.
 **Binding B (`event_root`).** A Tier 2 bundle that supports field
 disclosure MUST carry `event.metadata.event_root` (§10.7); the verifier
 asserts `disclosure.root === bundle.event.metadata.event_root`. Without
-this check, a fabricated disclosure with an attacker-chosen `root` and
-`field_value` produces a self-consistent Merkle walk — a critical
-forgery.
+this check, a fabricated disclosure paired with an attacker-chosen
+candidate (fresh salt, `merkle_path=[]`, `root` set to
+`computeLeafHash(candidate, salt)`) produces a self-consistent Merkle
+walk — a critical forgery.
 
 Because this repo's `tier2-pass.json` is regenerated via network (TSA +
 Ed25519) and does not include `event.metadata.event_root`, the

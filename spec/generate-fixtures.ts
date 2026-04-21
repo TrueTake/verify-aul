@@ -300,7 +300,6 @@ function generateFieldCommitmentPass(): void {
 
   writeVector('field-commitment-pass.json', {
     field_path: 'approver.email',
-    field_value: fieldValue,
     salt,
     merkle_path: merkle,
     root,
@@ -319,7 +318,6 @@ function generateFieldCommitmentBinding(): void {
   // Single-leaf tree: empty siblings, root === leaf.
   writeVector('field-commitment-binding.json', {
     field_path: 'approver.email',
-    field_value: fieldValue,
     salt,
     merkle_path: [],
     root: leaf,
@@ -340,7 +338,6 @@ function generateFieldCommitmentNfc(): void {
   const leaf = computeLeafHash('approver.email', fieldValue, saltBytes);
   writeVector('field-commitment-nfc.json', {
     field_path: 'approver.email',
-    field_value: fieldValue,
     salt,
     merkle_path: [],
     root: leaf,
@@ -368,7 +365,6 @@ function generateFieldCommitmentFail(): void {
 
   writeVector('field-commitment-fail.json', {
     field_path: 'approver.email',
-    field_value: fieldValue,
     salt,
     merkle_path: merkle,
     root: tamperedRoot,

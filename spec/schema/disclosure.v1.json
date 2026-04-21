@@ -4,17 +4,13 @@
   "title": "AUL Field-Disclosure Bundle v1",
   "description": "JSON Schema for the field-disclosure payload format defined in spec/v1.md §10. Normative for structural validation.",
   "type": "object",
-  "required": ["field_path", "field_value", "salt", "merkle_path", "root", "event_hash"],
+  "required": ["field_path", "salt", "merkle_path", "root", "event_hash"],
   "additionalProperties": false,
   "properties": {
     "field_path": {
       "description": "Dot-notation path of the disclosed field (e.g., `approver.email`). The schema validates shape only; the allowed value set is normative in spec §10.4 and enforced by the verifier. Adding a new supported field_path in §10.4 is a minor-version change to the spec that does NOT require bumping disclosure.v1.json to v2 — kept here so frozen vectors remain structurally valid across spec minor revisions.",
       "type": "string",
       "minLength": 1
-    },
-    "field_value": {
-      "description": "Canonicalized field value (per §10.4 rule for field_path). UTF-8 string.",
-      "type": "string"
     },
     "salt": {
       "description": "16-byte salt, unpadded base64url (22-char alphabet [A-Za-z0-9_-]).",

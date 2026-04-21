@@ -23,3 +23,6 @@ docs/solutions/
 .vscode/
 *.log
 npm-debug.log*
+
+# Agent/tooling local state (Claude Code worktrees, etc.)
+.claude/

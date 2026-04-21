@@ -106,7 +106,7 @@ describe('field-commitment-binding spec vector — end-to-end CLI', () => {
     }
   });
 
-  it('candidate that does not canonicalize to field_value → verdict fail', async () => {
+  it('candidate that does not canonicalize to the committed value → verdict fail', async () => {
     vi.mocked(verifyBundle).mockResolvedValue(PASS_BUNDLE_RESULT);
 
     const disclosurePath = resolve(VECTORS_DIR, 'field-commitment-binding.json');

@@ -74,12 +74,22 @@ describe('spec vectors', () => {
 
 interface DisclosureVector {
   field_path: string;
-  field_value: string;
   salt: string;
   merkle_path: MerkleSibling[];
   root: string;
   event_hash: string;
 }
+
+// The canonical committed value for each vector. These are NOT on the wire
+// (the disclosure format deliberately omits them — §10.2). They are known
+// out-of-band to anyone regenerating the vectors via `spec/generate-fixtures.ts`
+// and are inlined here so the parity test below can assert that a specific
+// candidate folds to the same leaf as the value the commit side hashed.
+const COMMITTED_VALUES: Record<string, string> = {
+  'field-commitment-pass.json': 'alice@example.com',
+  'field-commitment-nfc.json': 'caf\u00e9@example.com',
+  'field-commitment-fail.json': 'alice@example.com',
+};
 
 async function loadDisclosure(filename: string): Promise<DisclosureVector> {
   const path = resolve(VECTORS_DIR, filename);
@@ -92,22 +102,24 @@ function base64UrlToBytes(b64url: string): Uint8Array {
 }
 
 describe('field-commitment primitives vectors (spec §10.9)', () => {
-  it('field-commitment-pass: candidate canonicalizes to field_value and proof verifies', async () => {
+  it('field-commitment-pass: candidate canonicalizes to the committed value and proof verifies', async () => {
     const v = await loadDisclosure('field-commitment-pass.json');
     const salt = base64UrlToBytes(v.salt);
-    // Candidate in mixed case + trailing space canonicalizes to field_value.
+    const committed = COMMITTED_VALUES['field-commitment-pass.json']!;
+    // Candidate in mixed case + trailing space canonicalizes to the committed value.
     const candidate = 'Alice@Example.COM ';
     const leafHash = computeLeafHash(v.field_path, candidate, salt);
     // Cross-check: the canonical form produces the same leaf.
-    expect(computeLeafHash(v.field_path, v.field_value, salt)).toBe(leafHash);
+    expect(computeLeafHash(v.field_path, committed, salt)).toBe(leafHash);
     expect(verifyFieldProof(leafHash, v.merkle_path, v.root)).toBe(true);
   });
 
-  it('field-commitment-nfc: NFD candidate produces same leaf as NFC field_value', async () => {
+  it('field-commitment-nfc: NFD candidate produces same leaf as the NFC committed value', async () => {
     const v = await loadDisclosure('field-commitment-nfc.json');
     const salt = base64UrlToBytes(v.salt);
+    const committed = COMMITTED_VALUES['field-commitment-nfc.json']!;
     const nfdCandidate = 'cafe\u0301@example.com'; // decomposed
-    const nfcLeaf = computeLeafHash(v.field_path, v.field_value, salt);
+    const nfcLeaf = computeLeafHash(v.field_path, committed, salt);
     const nfdLeaf = computeLeafHash(v.field_path, nfdCandidate, salt);
     expect(nfdLeaf).toBe(nfcLeaf);
     expect(verifyFieldProof(nfdLeaf, v.merkle_path, v.root)).toBe(true);
@@ -116,7 +128,8 @@ describe('field-commitment primitives vectors (spec §10.9)', () => {
   it('field-commitment-fail: proof verification returns false (tampered root)', async () => {
     const v = await loadDisclosure('field-commitment-fail.json');
     const salt = base64UrlToBytes(v.salt);
-    const leafHash = computeLeafHash(v.field_path, v.field_value, salt);
+    const committed = COMMITTED_VALUES['field-commitment-fail.json']!;
+    const leafHash = computeLeafHash(v.field_path, committed, salt);
     expect(verifyFieldProof(leafHash, v.merkle_path, v.root)).toBe(false);
   });
 
