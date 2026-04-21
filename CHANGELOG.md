@@ -6,100 +6,13 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
 
 ## [Unreleased]
 
-## [1.1.0-alpha.2] — 2026-04-20
+## [1.1.0] — 2026-04-21
 
-**Drop `field_value` from the disclosure wire format.** The v1 disclosure
-payload defined in spec §10.2 previously required a top-level
-`field_value: string` field carrying the canonicalized committed value.
-The `verify-field` CLI's shape validator required it, but nothing
-downstream ever read it — verification is performed by folding the
-separately-supplied `--candidate` flag via `computeLeafHash` and
-comparing against `disclosure.root`. The `field_value` field was
-cryptographically redundant and leaked PII in cleartext at rest.
-
-This is the companion alpha to the downstream platform disclosure-route
-wire-format fix (TRU-705). No published consumer was depending on the
-1.1.0-alpha.1 disclosure shape — the platform-side endpoint never
-conformed to it — so this change is landing inside the alpha train
-rather than as a spec-major bump.
-
-### Changed (spec & wire format)
-
-- **Spec §10.2** — `field_value` removed from the disclosure payload
-  shape. Required field count drops from 6 to 5 (`field_path`, `salt`,
-  `merkle_path`, `root`, `event_hash`). Added explicit "disclosure MUST
-  NOT carry the committed value" language to match the design intent.
-- **`spec/schema/disclosure.v1.json`** — `field_value` removed from
-  `required` and `properties`. The schema still enforces
-  `additionalProperties: false`, so emitting `field_value` (or any
-  other unspecified field) now fails schema validation.
-- **Prose in §10.7 ("Why both")** — "attacker-chosen `field_value`"
-  reworded to "attacker-chosen candidate" to reflect how the attack is
-  actually mounted under the candidate-is-supplied-separately model.
-
-### Changed (reference implementation)
-
-- **`src/cli/verify-field.ts`** — `field_value` removed from
-  `requiredStringFields` and from the `Disclosure` type assembly in
-  `validateDisclosureShape`. Behavior is otherwise identical.
-- **`src/types.ts`** — `Disclosure.field_value` dropped from the
-  exported interface.
-
-### Changed (test vectors)
-
-- `spec/test-vectors/field-commitment-pass.json`,
-  `field-commitment-fail.json`, `field-commitment-nfc.json`, and
-  `field-commitment-binding.json` — `field_value` key removed.
-- `spec/generate-fixtures.ts` — stops emitting `field_value`.
-- Co-located `.md` docs reworded to refer to "the committed value" (a
-  value known to the commit side, not on the wire) instead of
-  "`field_value`" (a wire field that no longer exists).
-
-### Migration
-
-External verifiers and upstream commit sides built against
-`1.1.0-alpha.1`:
-
-- **Commit sides (e.g., TrueTake platform):** stop emitting
-  `field_value`. No replacement; the value is never sent.
-- **Verifiers:** no change needed if they were already ignoring
-  `field_value`. Verifiers that were trying to read it should switch
-  to requiring the candidate value out-of-band (via CLI flag, operator
-  input, etc.) and folding via `computeLeafHash`. That's what the
-  reference CLI has always done under the hood.
-
-## [1.1.0-alpha.1] — 2026-04-20
-
-**Expose field-commitment primitives on the `./testing` subpath.** Follow-up
-to `1.1.0-alpha.0` so the TrueTake platform gold-file generator
-(`server/services/ledger/__fixtures__/field-commitments.json`) can be
-rewired to produce leaves via this package's `@noble/hashes`-based
-`computeLeafHash` instead of the commit-side `node:crypto` one. That's
-what actually closes the cross-implementation byte-equality loop that
-`1.1.0-alpha.0` set up on this side.
-
-### Added
-
-- **`./testing` subpath now re-exports** `canonicalizeFieldValue`,
-  `computeLeafHash`, `verifyFieldProof`, `ENCODING_VERSION`,
-  `DISCLOSABLE_FIELDS`, `FieldCommitmentError`, and the
-  `DisclosableField` / `FieldCommitmentErrorCode` types. These remain
-  absent from the public `.` entry point — the "external verifiers
-  implement from the spec" stance is preserved for production consumers;
-  the `./testing` surface is scoped to fixture-generation parity work.
-
-### Notes
-
-- No behavioral change in `src/field-commitment.ts`; this is a
-  surface-exposure bump only. No spec change. No disclosure-format
-  change.
-
-## [1.1.0-alpha.0] — 2026-04-20
-
-**Field-disclosure support.** Adds a `verify-field` CLI subcommand and the
-field-commitment primitives that back it, along with spec §10 covering
-the normative on-wire format. Pre-release while the companion commit-side
-cross-implementation byte-equality loop is closed downstream.
+**Field-disclosure support.** Stable promotion of the `1.1.0-alpha.{0,1,2}`
+development train. The full alpha sequence landed upstream integration
+(TrueTake platform commit side; see TrueTake/platform#544) with
+cross-implementation byte-equality verified end-to-end before this
+promotion. No behavioral differences versus `1.1.0-alpha.2`.
 
 ### Added
 
@@ -113,24 +26,30 @@ cross-implementation byte-equality loop is closed downstream.
   (`disclosure.root === bundle.event.metadata.event_root`) — no escape
   hatch. The two bindings together anchor the disclosure's Merkle root
   to the signed + Solana-anchored event; without Binding B, a forged
-  disclosure with an attacker-chosen `field_value` would walk
+  disclosure paired with an attacker-chosen candidate would walk
   self-consistently.
-- **Field-commitment primitives** — `src/field-commitment.ts` exposes
-  `canonicalizeFieldValue`, `computeLeafHash`, and `verifyFieldProof`,
-  used by the CLI handler. **CLI-internal** — not re-exported from
-  `src/index.ts` or `src/testing.ts` in this release. External verifier
-  implementations work from spec §10 and the disclosure test vectors.
+- **Field-commitment primitives** in `src/field-commitment.ts` —
+  `canonicalizeFieldValue`, `computeLeafHash`, `verifyFieldProof`,
+  `DISCLOSABLE_FIELDS`, `ENCODING_VERSION`, `FieldCommitmentError`.
+  Used by the CLI handler internally and re-exported on the `./testing`
+  subpath (`import { … } from '@truetake/verify-aul/testing'`) for
+  cross-implementation parity fixture generation. Not on the `.` entry
+  point — external verifier implementations should work from spec §10
+  and the disclosure test vectors, not from package imports.
 - **Spec §10** — *Field-disclosure bundles (v1)*. Normative prose for
   leaf / node prefixes, 16-byte salt, per-field canonicalization
   (`approver.email` → NFC + trim + lowercase; other paths reserved),
-  disclosure payload shape, `event_hash` binding rule, and the §10.8
-  verification algorithm. Includes §10.10 operational guidance
-  (Solana RPC trust, 10 MB payload cap, argv-leak caveat, release
-  cadence for new `field_path` values).
+  disclosure payload shape, the two §10.7 bindings (`event_hash`
+  identity + `root` tree commitment), and the §10.8 verification
+  algorithm. Includes §10.10 operational guidance (Solana RPC trust,
+  10 MB payload cap, argv-leak caveat, release cadence for new
+  `field_path` values).
 - **`spec/schema/disclosure.v1.json`** — JSON Schema for the
-  field-disclosure payload. `scripts/check-schema-vectors.ts` routes
-  vectors to the bundle or disclosure schema based on the presence of
-  `field_path`.
+  field-disclosure payload. Five required fields (`field_path`, `salt`,
+  `merkle_path`, `root`, `event_hash`), `additionalProperties: false`
+  so unspecified keys cause schema validation to fail.
+  `scripts/check-schema-vectors.ts` routes vectors to the bundle or
+  disclosure schema based on the presence of `field_path`.
 - **Four disclosure test vectors** under `spec/test-vectors/`:
   `field-commitment-pass` (primitives happy path), `-binding` (bound
   to `tier2-pass.json`'s `event_hash` — exercises the CLI end-to-end),
@@ -141,37 +60,52 @@ cross-implementation byte-equality loop is closed downstream.
   from a parallel commit-side implementation (not distributed with this
   package). `src/platform-parity.test.ts` asserts this package's
   `computeLeafHash` reproduces the committed `expected_leaf_hashes`
-  byte-for-byte, catching drift between the two implementations in this
-  repo's CI.
-- **Split fixtures generator** — new `npm run fixtures:generate:offline`
-  emits only the deterministic field-commitment vectors (no network, no
-  fresh CA keys). CI gates byte-equality on the offline outputs via
+  byte-for-byte, catching drift between the two implementations.
+- **Split fixtures generator** — `npm run fixtures:generate:offline`
+  emits only the deterministic field-commitment vectors (no network,
+  no fresh CA keys). CI gates byte-equality on the offline outputs via
   `git diff --exit-code`. `npm run fixtures:generate` retains the full
   behavior (offline + network).
-- `spec/v1.md` §10.9 catalog linking all four disclosure vectors plus
-  the platform-parity fixture.
 
-### Changed
+### Design notes
 
-- `package.json.version` → `1.1.0-alpha.0`. Minor bump: new CLI
-  subcommand, new public capability. Alpha because downstream
-  integration is still in progress.
-- `spec/README.md` — indexes both schemas and documents the offline
-  fixtures phase.
-- CLI `--help` lists the `verify-field` subcommand and its flags.
+- **Disclosures never carry the committed value on the wire.** The
+  spec deliberately omits a `field_value` field and the schema's
+  `additionalProperties: false` rejects it. Verification works by the
+  verifier supplying a candidate out-of-band (e.g. `--candidate`) and
+  folding via `computeLeafHash`; a wrong candidate produces a leaf that
+  does not fold to `root`. A disclosure at rest therefore leaks nothing
+  beyond an opaque salt + hash, preserving the commit side's "row-level
+  DB compromise never leaks committed values directly" guarantee.
+- **Mandatory `verifyBundle` step in the CLI** — pins the active
+  TrueTake public key via the package's embedded trust anchor, validates
+  the Ed25519 signature, confirms `event_hash` is included in a
+  Solana-confirmed batch Merkle root. Without it, a hostile actor could
+  fabricate a bundle + disclosure pair whose internal arithmetic is
+  self-consistent.
+
+### Migration from `1.0.0`
+
+No breaking changes to existing public API (`verifyBundle`, bundle
+verification types, trust-anchor fingerprints). The `verify-field`
+subcommand and the `./testing` subpath are purely additive. The alpha
+train during development briefly required a `field_value` field on
+disclosure payloads, but that was never released as stable — `1.0.0`
+consumers have nothing to migrate.
 
 ### Notes
 
-- **Downstream integration (not in this release).** The commit-side
-  implementation will bump its dep to `1.1.0-alpha.0` and regenerate its
-  gold-file fixtures against this implementation, closing the
-  two-implementation parity loop. The parity fixture in this release is
-  the short-term guard against drift before that integration lands.
-- **Release cadence.** Adding a new supported `field_path` to spec §10.4
-  requires a minor-version bump here — verifiers older than the bump
-  MUST reject the new path. A future release MAY adopt a declarative
-  `canonicalization` field inside the disclosure payload to decouple
-  field additions from verifier release cadence; not in scope for v1.
+- **Release cadence for `field_path`.** Adding a new supported
+  `field_path` to spec §10.4 requires a minor-version bump here —
+  verifiers older than the bump MUST reject the new path. A future
+  release MAY adopt a declarative `canonicalization` field inside the
+  disclosure payload to decouple field additions from verifier release
+  cadence; not in scope for v1.
+- **Alpha history.** The development train `1.1.0-alpha.{0,1,2}` was
+  published during downstream integration; those versions are preserved
+  on npm under the `next` dist-tag and in git tags but are superseded
+  by this release. Git log and GitHub Releases carry the alpha-by-alpha
+  diff for anyone needing that history.
 
 ## [1.0.0] — 2026-04-20
 
