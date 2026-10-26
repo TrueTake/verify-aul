@@ -71,8 +71,8 @@ export async function buildFixturesCa(): Promise<FixturesCa> {
     isCa: true,
     keyUsageBits: [true, false, false, false, false, true, true, false, false], // digitalSignature + keyCertSign + cRLSign
     extKeyUsage: null,
-    publicKey: caKeys.publicKey,
-    signingPrivateKey: caKeys.privateKey,
+    publicKey: caKeys.publicKey as CryptoKey,
+    signingPrivateKey: caKeys.privateKey as CryptoKey,
   });
 
   const tsaKeys = await webcrypto.subtle.generateKey(
@@ -95,8 +95,8 @@ export async function buildFixturesCa(): Promise<FixturesCa> {
     isCa: false,
     keyUsageBits: [true, false, false, false, false, false, false, false, false], // digitalSignature
     extKeyUsage: [ID_KP_TIMESTAMPING],
-    publicKey: tsaKeys.publicKey,
-    signingPrivateKey: caKeys.privateKey,
+    publicKey: tsaKeys.publicKey as CryptoKey,
+    signingPrivateKey: caKeys.privateKey as CryptoKey,
   });
 
   const caDer = new Uint8Array(caCert.toSchema(true).toBER(false));
@@ -107,7 +107,7 @@ export async function buildFixturesCa(): Promise<FixturesCa> {
     caCertPem: derToPem(caDer, 'CERTIFICATE'),
     caSkiSha256Hex,
     tsaCert,
-    tsaPrivateKey: tsaKeys.privateKey,
+    tsaPrivateKey: tsaKeys.privateKey as CryptoKey,
   };
 }
 
