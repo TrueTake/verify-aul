@@ -6,6 +6,10 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING:** `engines.node` is now `>=24`; Node 20 and 22 are no longer supported. CI tests Node 24 and 26, and the workflows' non-matrix jobs read `.nvmrc` (24.22.1). There are no API or behavior changes; the change ships as 2.0.0.
+
 ## [1.1.0] — 2026-04-21
 
 **Field-disclosure support.** Stable promotion of the `1.1.0-alpha.{0,1,2}`

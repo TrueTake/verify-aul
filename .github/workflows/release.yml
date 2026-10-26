@@ -71,14 +71,16 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
-      # Node 24 ships with npm 11+ by default. Trusted Publishing (OIDC)
-      # requires npm >= 11.5.1. Attempting to self-upgrade npm 10 -> 11
-      # breaks mid-swap ("Cannot find module 'promise-retry'"), so install a
-      # Node version that already carries npm 11. This is the only job that
-      # requires 24; ci.yml still tests the published package on Node 20 + 22.
+      # Trusted Publishing (OIDC) requires npm >= 11.5.1. Attempting to
+      # self-upgrade npm 10 -> 11 breaks mid-swap ("Cannot find module
+      # 'promise-retry'"), so use a Node version that already carries npm 11.
+      # This job reads its Node version from .nvmrc (24.x, which ships npm
+      # 11+), as do the non-matrix ci.yml jobs and pages.yml, so .nvmrc must
+      # stay on a Node line that bundles npm >= 11.5.1. ci.yml's lint-test
+      # job separately tests Node 24 and 26 through its matrix.
       - uses: actions/setup-node@ab72c7e7eba0eaa11f8cab0f5679243900c2cac9
         with:
-          node-version: '24'
+          node-version-file: .nvmrc
           registry-url: 'https://registry.npmjs.org'
       - name: Log npm + node versions
         run: |
