@@ -8,7 +8,13 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
 
 ### Changed
 
-- **BREAKING:** `engines.node` is now `>=24`; Node 20 and 22 are no longer supported. CI tests Node 24 and 26, and the workflows' non-matrix jobs read `.nvmrc` (24.22.1). There are no API or behavior changes; the change ships as 2.0.0.
+- `bin.verify-aul` in `package.json` drops its leading `./` (`npm pkg fix`). npm already stored it that way when publishing 2.0.0, and warned that it had "auto-corrected" the field; this removes the warning. The published CLI is unaffected.
+
+## [2.0.0] — 2026-10-27
+
+### Changed
+
+- **BREAKING:** `engines.node` is now `>=24`; Node 20 and 22 are no longer supported. CI tests Node 24 and 26, and the workflows' non-matrix jobs read `.nvmrc` (24.22.1). There are no API or behavior changes.
 
 ## [1.1.0] — 2026-04-21
 
