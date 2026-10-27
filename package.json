@@ -36,7 +36,7 @@
   },
   "sideEffects": false,
   "bin": {
-    "verify-aul": "./dist/esm/cli/bin.js"
+    "verify-aul": "dist/esm/cli/bin.js"
   },
   "exports": {
     ".": {
