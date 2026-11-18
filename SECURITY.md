@@ -26,7 +26,9 @@ Only the most recently published version on npm is supported. Older versions are
 This repository operates with a **single maintainer** during initial release. Supply-chain integrity rests on the following controls, all of which work with one human in the loop:
 
 - **npm Trusted Publishing (OIDC provenance)** — every tarball carries a Sigstore attestation binding it to a specific commit + workflow + build log. No long-lived `NPM_TOKEN`.
-- **SHA-pinned GitHub Actions** — every third-party Action is pinned to a 40-character SHA (not a tag). Tag mutation attacks (e.g. `tj-actions/changed-files`, Trivy/TeamPCP) are neutralized by pinning.
+- **SHA-pinned GitHub Actions** — every third-party Action is pinned to a 40-character SHA (not a tag), with the tag it was resolved from in a trailing comment. Tag mutation attacks (e.g. `tj-actions/changed-files`, Trivy/TeamPCP) are neutralized by pinning.
+- **Workflow security audit in CI** — the required `ci` check runs [zizmor](https://docs.zizmor.sh) over `.github/` and fails on any High finding. It runs `--offline`, so the audits that query GitHub's API (impostor commits, known-vulnerable actions) are left to a manual run: `uvx zizmor@<version> .github` with a `GH_TOKEN`, using the version pinned on the step. zizmor is downloaded from its GitHub release and sha256-checked. Medium findings are not yet gated.
+- **No dependency cache in the publish or Pages jobs** — `release.yml` and `pages.yml` set `package-manager-cache: false`, so nothing another workflow run wrote to the Actions cache can reach a published package or the hosted UI. Both install with `npm ci` from the lockfile.
 - **`npm ci --ignore-scripts` in CI** — neutralizes the most common supply-chain vector (lifecycle scripts in transitive deps).
 - **Public commit visibility** — once the repository goes public, every change is auditable by anyone.
 - **Split Pages build/deploy with scoped permissions** — the `build` job has `contents: read` only and cannot deploy; the `deploy` job has `pages: write` + `id-token: write` only and does not run arbitrary build code.
