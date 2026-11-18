@@ -11,21 +11,22 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Build runs with `contents: read` only — cannot deploy. This is the
-  # compromise-containment barrier: a malicious transitive dep or build step
-  # cannot reach the Pages deployment surface from here.
+  # Build runs with `contents: read` + `pages: read` — cannot deploy. This is
+  # the compromise-containment barrier: a malicious transitive dep or build
+  # step cannot reach the Pages deployment surface from here.
   build:
     name: Build web/
     runs-on: ubuntu-latest
-    # `pages: read` + `id-token: write` are the minimums for `configure-pages`
-    # to succeed. `configure-pages` + `upload-pages-artifact` must live in the
-    # same job (per Pages-deploy doc pattern). The compromise-containment split
-    # still holds: build cannot call `deploy-pages` (needs `pages: write`),
-    # only deploy can.
+    # `pages: read` is the minimum for `configure-pages`, which reads the Pages
+    # site via the REST API (it failed with `contents: read` alone). Neither it
+    # nor `upload-pages-artifact` requests an OIDC token, so no `id-token`.
+    # `configure-pages` + `upload-pages-artifact` must live in the same job
+    # (per Pages-deploy doc pattern). The compromise-containment split still
+    # holds: build cannot call `deploy-pages` (needs `pages: write`), only
+    # deploy can.
     permissions:
       contents: read
       pages: read
-      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2

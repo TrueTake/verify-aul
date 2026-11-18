@@ -31,7 +31,7 @@ This repository operates with a **single maintainer** during initial release. Su
 - **No dependency cache in the publish or Pages jobs** — `release.yml` and `pages.yml` set `package-manager-cache: false`, so nothing another workflow run wrote to the Actions cache can reach a published package or the hosted UI. Both install with `npm ci` from the lockfile.
 - **`npm ci --ignore-scripts` in CI** — neutralizes the most common supply-chain vector (lifecycle scripts in transitive deps).
 - **Public commit visibility** — once the repository goes public, every change is auditable by anyone.
-- **Split Pages build/deploy with scoped permissions** — the `build` job has `contents: read` only and cannot deploy; the `deploy` job has `pages: write` + `id-token: write` only and does not run arbitrary build code.
+- **Split Pages build/deploy with scoped permissions** — the `build` job has `contents: read` + `pages: read` (which `configure-pages` needs to read the Pages site) and cannot deploy; the `deploy` job has `pages: write` + `id-token: write` only and does not run arbitrary build code.
 - **Environment-level tag restriction on publish** — the `npm-publish` environment's deployment-branch rule restricts workflow runs to tag refs (`refs/tags/v*`), so a `main`-triggered rogue workflow cannot satisfy the OIDC environment claim.
 - **CI-enforced trust-anchor checks** — inline-PEM vs. file-PEM byte equality, fingerprint validity, and disjointness between production and fixtures anchor sets (see `scripts/check-trust-anchor-fingerprints.ts` and `scripts/check-fingerprints-disjoint.ts`).
 
