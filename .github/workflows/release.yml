@@ -24,9 +24,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout (with full history)
-        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
+          # The `git fetch` below runs without a token. That works because
+          # this repo is public; if it ever fails, the release fails closed.
+          persist-credentials: false
       - name: Check tag commit is ancestor of main
         run: |
           set -euo pipefail
@@ -43,7 +46,9 @@ jobs:
     name: Verify package.json repository.url matches GitHub identity
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
       - name: Compare package.json repository.url to workflow identity
         run: |
           set -euo pipefail
@@ -70,7 +75,9 @@ jobs:
       # needed for gh release attach-shasum below
       contents: write
     steps:
-      - uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
       # Trusted Publishing (OIDC) requires npm >= 11.5.1. Attempting to
       # self-upgrade npm 10 -> 11 breaks mid-swap ("Cannot find module
       # 'promise-retry'"), so use a Node version that already carries npm 11.
@@ -78,10 +85,14 @@ jobs:
       # 11+), as do the non-matrix ci.yml jobs and pages.yml, so .nvmrc must
       # stay on a Node line that bundles npm >= 11.5.1. ci.yml's lint-test
       # job separately tests Node 24 and 26 through its matrix.
-      - uses: actions/setup-node@ab72c7e7eba0eaa11f8cab0f5679243900c2cac9
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version-file: .nvmrc
           registry-url: 'https://registry.npmjs.org'
+          # Never restore a cache into the publish job. A tag run can read
+          # caches that any other job on main wrote, so a poisoned entry would
+          # ship in the package. `npm ci` installs from the lockfile instead.
+          package-manager-cache: false
       - name: Log npm + node versions
         run: |
           node --version

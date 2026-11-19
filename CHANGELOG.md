@@ -9,6 +9,7 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
 ### Changed
 
 - `bin.verify-aul` in `package.json` drops its leading `./` (`npm pkg fix`). npm already stored it that way when publishing 2.0.0, and warned that it had "auto-corrected" the field; this removes the warning. The published CLI is unaffected.
+- CI now audits the workflows with [zizmor](https://docs.zizmor.sh) and fails the `ci` check on any High finding. To pass it, the publish job in `release.yml` and the build job in `pages.yml` no longer restore a dependency cache (`package-manager-cache: false`), and their checkouts no longer keep the git token. Every action is now pinned to the commit of a release tag, named in a comment: `actions/checkout` v6.0.2 and `actions/setup-node` v6.4.0, the same code as the untagged commits pinned before. The published package is unaffected.
 
 ## [2.0.0] — 2026-10-27
 
